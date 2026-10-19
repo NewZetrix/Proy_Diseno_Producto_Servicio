@@ -1,0 +1,13 @@
+# Variables de entorno
+.env
+**/.env
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# App móvil
+node_modules/
+
+# IDE
+.idea/
