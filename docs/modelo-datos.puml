@@ -1,12 +1,67 @@
 @startuml
 hide circles
-entity colegio { * id : INT <<PK>> --  nombre  direccion }
-entity usuario { * id : INT <<PK>> --  colegio_id <<FK>>  nombre  correo  password_hash  rol }
-entity salon { * id : INT <<PK>> --  colegio_id <<FK>>  docente_id <<FK>>  nombre  grado }
-entity estudiante { * id : INT <<PK>> --  salon_id <<FK>>  apoderado_id <<FK>>  nombre }
-entity emergencia { * id : INT <<PK>> --  colegio_id <<FK>>  activada_por <<FK>>  tipo  estado  activada_en  finalizada_en }
-entity confirmacion_salon { * id : INT <<PK>> --  emergencia_id <<FK>>  salon_id <<FK>>  confirmado_por <<FK>>  estado  confirmado_en }
-entity notificacion { * id : INT <<PK>> --  emergencia_id <<FK>>  estudiante_id <<FK>>  apoderado_id <<FK>>  mensaje  estado  enviada_en }
+skinparam linetype ortho
+
+entity colegio {
+  * id : INT <<PK>>
+  --
+  nombre
+  direccion
+}
+entity usuario {
+  * id : INT <<PK>>
+  --
+  colegio_id <<FK>>
+  nombre
+  correo
+  password_hash
+  rol
+}
+entity salon {
+  * id : INT <<PK>>
+  --
+  colegio_id <<FK>>
+  docente_id <<FK>>
+  nombre
+  grado
+}
+entity estudiante {
+  * id : INT <<PK>>
+  --
+  salon_id <<FK>>
+  apoderado_id <<FK>>
+  nombre
+}
+entity emergencia {
+  * id : INT <<PK>>
+  --
+  colegio_id <<FK>>
+  activada_por <<FK>>
+  tipo
+  estado
+  activada_en
+  finalizada_en
+}
+entity confirmacion_salon {
+  * id : INT <<PK>>
+  --
+  emergencia_id <<FK>>
+  salon_id <<FK>>
+  confirmado_por <<FK>>
+  estado
+  confirmado_en
+}
+entity notificacion {
+  * id : INT <<PK>>
+  --
+  emergencia_id <<FK>>
+  estudiante_id <<FK>>
+  apoderado_id <<FK>>
+  mensaje
+  estado
+  enviada_en
+}
+
 colegio ||--o{ usuario
 colegio ||--o{ salon
 colegio ||--o{ emergencia
