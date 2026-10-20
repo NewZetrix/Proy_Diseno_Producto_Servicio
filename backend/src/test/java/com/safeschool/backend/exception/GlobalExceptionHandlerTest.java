@@ -45,4 +45,12 @@ class GlobalExceptionHandlerTest {
         assertEquals("La operación no pudo completarse. Intente nuevamente.",
                 respuesta.getBody().mensaje());
     }
+
+    @Test
+    void credencialesInvalidasDevuelve401() {
+        ResponseEntity<ApiError> respuesta =
+                handler.credenciales(new CredencialesInvalidasException("Correo o contraseña incorrectos"));
+
+        assertEquals(401, respuesta.getStatusCode().value());
+    }
 }
