@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import * as SecureStore from 'expo-secure-store';
 
 export type Rol = 'DIRECTOR' | 'DOCENTE' | 'PADRE' | null;
 
@@ -10,10 +18,13 @@ type Session = {
 };
 
 type SessionContextValue = Session & {
-  setSession: (session: Session) => void;
-  clearSession: () => void;
+  setSession: (session: Session) => Promise<void>;
+  clearSession: () => Promise<void>;
   isAuthenticated: boolean;
+  isLoading: boolean;
 };
+
+const STORAGE_KEY = 'safeschool_session';
 
 const initialSession: Session = {
   token: null,
@@ -26,15 +37,42 @@ const SessionContext = createContext<SessionContextValue | undefined>(undefined)
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSessionState] = useState<Session>(initialSession);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await SecureStore.getItemAsync(STORAGE_KEY);
+        if (raw) {
+          setSessionState(JSON.parse(raw) as Session);
+        }
+      } catch {
+        // si falla la lectura, se queda sin sesión
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, []);
+
+  const setSession = useCallback(async (next: Session) => {
+    setSessionState(next);
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
+  const clearSession = useCallback(async () => {
+    setSessionState(initialSession);
+    await SecureStore.deleteItemAsync(STORAGE_KEY);
+  }, []);
 
   const value = useMemo<SessionContextValue>(
     () => ({
       ...session,
-      setSession: setSessionState,
-      clearSession: () => setSessionState(initialSession),
+      setSession,
+      clearSession,
       isAuthenticated: Boolean(session.token),
+      isLoading,
     }),
-    [session]
+    [session, setSession, clearSession, isLoading]
   );
 
   return (
