@@ -36,8 +36,3 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-
-/*
-git add security(o lo que salga xd del security)
-git commit -m "feat: JWT (generación y validación)"
-*/
