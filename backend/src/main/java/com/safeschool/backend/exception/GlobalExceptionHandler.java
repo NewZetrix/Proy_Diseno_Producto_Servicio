@@ -46,11 +46,6 @@ public class GlobalExceptionHandler {
                 "La operación no pudo completarse. Intente nuevamente.");
     }
 
-    @ExceptionHandler(CredencialesInvalidasException.class)
-    public ResponseEntity<ApiError> credenciales(CredencialesInvalidasException ex) {
-        return construir(HttpStatus.UNAUTHORIZED, ex.getMessage());
-    }
-
     private ResponseEntity<ApiError> construir(HttpStatus estado, String mensaje) {
         ApiError cuerpo = new ApiError(estado.value(), estado.getReasonPhrase(), mensaje, LocalDateTime.now());
         return ResponseEntity.status(estado).body(cuerpo);
