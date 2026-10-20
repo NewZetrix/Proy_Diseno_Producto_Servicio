@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing, typography } from '../constants/theme';
+import { useSession } from '../context/SessionContext';
 import { api } from '../services/api';
-import type { RootStackParamList } from '../navigation/AppNavigator';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-export function HomeScreen({ navigation }: Props) {
+export function HomeScreen() {
+  const { nombre, rol, token, clearSession } = useSession();
   const [health, setHealth] = useState<string>('Sin probar');
   const [loading, setLoading] = useState(false);
 
   async function probarHealth() {
     setLoading(true);
     try {
-      const data = await api<{ status: string; servicio: string }>('/api/health');
+      const data = await api<{ status: string; servicio: string }>('/api/health', {
+        token,
+      });
       setHealth(`${data.status} · ${data.servicio}`);
     } catch (e) {
       setHealth(e instanceof Error ? e.message : 'Error de conexión');
@@ -26,8 +26,10 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>SafeSchool</Text>
-      <Text style={styles.subtitle}>Base de navegación móvil</Text>
+      <Text style={styles.title}>Inicio</Text>
+      <Text style={styles.subtitle}>
+        {nombre} · {rol}
+      </Text>
 
       <Text style={styles.label}>Estado del backend:</Text>
       <Text style={styles.value}>{health}</Text>
@@ -40,9 +42,9 @@ export function HomeScreen({ navigation }: Props) {
       />
 
       <PrimaryButton
-        title="Ir a pantalla de ejemplo"
-        onPress={() => navigation.navigate('Ejemplo')}
-        style={styles.button}
+        title="Cerrar sesión"
+        variant="danger"
+        onPress={() => clearSession()}
       />
     </View>
   );

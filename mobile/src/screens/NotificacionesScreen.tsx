@@ -1,21 +1,24 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing, typography } from '../constants/theme';
-import type { RootStackParamList } from '../navigation/AppNavigator';
+import { useSession } from '../context/SessionContext';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Ejemplo'>;
+export function NotificacionesScreen() {
+  const { nombre, clearSession } = useSession();
 
-export function EjemploScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Pantalla de ejemplo</Text>
+      <Text style={styles.title}>Notificaciones</Text>
       <Text style={styles.body}>
-        Esta pantalla solo sirve para verificar la navegación stack de la rama base.
+        Hola {nombre}. Aquí verás las alertas de tus hijos (se implementa en HU03).
       </Text>
 
-      <PrimaryButton title="Volver" onPress={() => navigation.goBack()} />
+      <PrimaryButton
+        title="Cerrar sesión"
+        variant="danger"
+        onPress={() => clearSession()}
+      />
     </View>
   );
 }
@@ -28,8 +31,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: typography.subtitle,
-    fontWeight: '700',
+    fontSize: typography.title,
+    fontWeight: '800',
     color: colors.text,
     marginBottom: spacing.md,
   },
