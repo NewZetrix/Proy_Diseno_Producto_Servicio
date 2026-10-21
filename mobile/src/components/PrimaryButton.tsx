@@ -12,7 +12,8 @@ type Props = {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  variant?: 'primary' | 'danger';
+  disabled?: boolean;
+  variant?: 'primary' | 'danger' | 'secondary';
   style?: ViewStyle;
 };
 
@@ -20,26 +21,40 @@ export function PrimaryButton({
   title,
   onPress,
   loading = false,
+  disabled = false,
   variant = 'primary',
   style,
 }: Props) {
+  const esSecundario = variant === 'secondary';
   const backgroundColor =
-    variant === 'danger' ? colors.danger : colors.primary;
+    variant === 'danger'
+      ? colors.danger
+      : esSecundario
+      ? colors.surface
+      : colors.primary;
+
+  const inactivo = loading || disabled;
 
   return (
     <Pressable
       onPress={onPress}
-      disabled={loading}
+      disabled={inactivo}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: inactivo, busy: loading }}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor, opacity: pressed || loading ? 0.85 : 1 },
+        esSecundario && styles.secondary,
+        { backgroundColor, opacity: pressed || inactivo ? 0.85 : 1 },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={esSecundario ? colors.primary : '#fff'} />
       ) : (
-        <Text style={styles.text}>{title}</Text>
+        <Text style={[styles.text, esSecundario && styles.textSecondary]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );
@@ -47,15 +62,23 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 56,
+    height: 52,
     borderRadius: radii.md,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+  },
+  secondary: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
   },
   text: {
-    color: '#FFFFFF',
-    fontSize: typography.subtitle,
-    fontWeight: '700',
+    color: '#fff',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold as any,
+  },
+  textSecondary: {
+    color: colors.primary,
   },
 });
