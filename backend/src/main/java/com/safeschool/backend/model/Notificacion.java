@@ -4,37 +4,22 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "notificacion")
 @Getter
 @Setter
 public class Notificacion {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "emergencia_id")
-    private Emergencia emergencia;
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "estudiante_id")
-    private Estudiante estudiante;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "apoderado_id")
-    private Usuario apoderado;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, length = 500)
     private String mensaje;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EstadoNotificacion estado;
-
-    @Column(name = "enviada_en", nullable = false)
-    private LocalDateTime enviadaEn = LocalDateTime.now();
+    private String estado = "ENVIADA";
 }
