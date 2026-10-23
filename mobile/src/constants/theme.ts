@@ -20,6 +20,18 @@ export const spacing = {
 };
 
 export const typography = {
+  sizes: {
+    xs: 12,
+    sm: 14,
+    md: 16,
+    lg: 20,
+    xl: 24,
+  },
+  weights: {
+    normal: '400',
+    bold: '700',
+  },
+  // Mantenemos tus propiedades originales por si se usan en otra parte
   title: 28,
   subtitle: 20,
   body: 16,

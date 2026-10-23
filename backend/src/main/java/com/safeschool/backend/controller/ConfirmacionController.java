@@ -4,6 +4,7 @@ import com.safeschool.backend.dto.ConfirmacionResponse;
 import com.safeschool.backend.security.UsuarioAutenticado;
 import com.safeschool.backend.service.ConfirmacionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,6 +16,7 @@ public class ConfirmacionController {
     private final ConfirmacionService confirmacionService;
 
     @PutMapping("/{id}/salones/{salonId}/confirmacion")
+    @PreAuthorize("hasRole('DOCENTE')")
     public ConfirmacionResponse confirmar(
             @PathVariable("id") Long emergenciaId,
             @PathVariable("salonId") Long salonId,
