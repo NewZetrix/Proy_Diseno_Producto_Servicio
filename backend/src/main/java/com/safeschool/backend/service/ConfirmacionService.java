@@ -39,7 +39,8 @@ public class ConfirmacionService {
         Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
 
-        Salon salon = salonRepository.findById(salonId)
+        Integer salonIdInt = salonId.intValue();
+        Salon salon = salonRepository.findById(salonIdInt)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Salón no encontrado"));
 
         if (salon.getColegio() != null && emergencia.getColegio() != null &&
@@ -47,7 +48,8 @@ public class ConfirmacionService {
             throw new RecursoNoEncontradoException("El salón no pertenece a esta emergencia");
         }
 
-        if (salon.getDocente() != null && !salon.getDocente().getId().equals(usuarioAuth.id())) {
+        Integer docenteIdInt = usuarioAuth.id();
+        if (salon.getDocente() != null && !salon.getDocente().getId().equals(docenteIdInt)) {
             throw new AccesoNoAutorizadoException("Solo puede confirmar su propio salón");
         }
 
@@ -60,11 +62,11 @@ public class ConfirmacionService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("El salón no tiene confirmación en esta emergencia"));
 
         if (confirmacion.getEstado() != EstadoConfirmacion.A_SALVO) {
-            Usuario docente = usuarioRepository.findById(usuarioAuth.id())
+            Usuario docente = usuarioRepository.findById(docenteIdInt)
                     .orElseThrow(() -> new RecursoNoEncontradoException("Usuario docente no encontrado"));
 
             confirmacion.setEstado(EstadoConfirmacion.A_SALVO);
-            confirmacion.setFechaHoraConfirmacion(LocalDateTime.now());
+            confirmacion.setConfirmadoEn(LocalDateTime.now());
             confirmacion.setConfirmadoPor(docente);
             confirmacionSalonRepository.save(confirmacion);
         }
@@ -72,15 +74,14 @@ public class ConfirmacionService {
         long salonesConfirmados = confirmacionSalonRepository.countByEmergenciaIdAndEstado(emergenciaId, EstadoConfirmacion.A_SALVO);
         long totalSalones = confirmacionSalonRepository.countByEmergenciaId(emergenciaId);
 
-        ConfirmacionResponse response = new ConfirmacionResponse();
-        response.setId(confirmacion.getId());
-        response.setSalonId(salon.getId());
-        response.setNombreSalon(salon.getNombre());
-        response.setEstado(confirmacion.getEstado().name());
-        response.setFechaHoraConfirmacion(confirmacion.getFechaHoraConfirmacion() != null ? confirmacion.getFechaHoraConfirmacion().toString() : null);
-        response.setSalonesConfirmados(salonesConfirmados);
-        response.setTotalSalones(totalSalones);
-
-        return response;
+        return new ConfirmacionResponse(
+            confirmacion.getId().longValue(),
+            salon.getId().longValue(),
+            salon.getNombre(),
+            confirmacion.getEstado().name(),
+            confirmacion.getConfirmadoEn() != null ? confirmacion.getConfirmadoEn().toString() : null,
+            salonesConfirmados,
+            totalSalones
+        );
     }
 }

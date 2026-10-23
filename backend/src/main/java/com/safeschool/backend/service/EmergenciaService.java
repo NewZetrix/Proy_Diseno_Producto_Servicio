@@ -2,12 +2,15 @@ package com.safeschool.backend.service;
 
 import com.safeschool.backend.dto.ActivarEmergenciaRequest;
 import com.safeschool.backend.dto.EmergenciaResponse;
+import com.safeschool.backend.dto.ResumenSalonesResponse;
+import com.safeschool.backend.dto.SalonEstadoDto;
 import com.safeschool.backend.exception.ConflictoException;
 import com.safeschool.backend.exception.RecursoNoEncontradoException;
 import com.safeschool.backend.model.*;
 import com.safeschool.backend.repository.ConfirmacionSalonRepository;
 import com.safeschool.backend.repository.EmergenciaRepository;
 import com.safeschool.backend.repository.SalonRepository;
+import com.safeschool.backend.security.UsuarioAutenticado;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,8 +46,7 @@ public class EmergenciaService {
         Emergencia emergencia = new Emergencia();
         emergencia.setTipo(TipoEmergencia.SISMO);
         emergencia.setEstado(EstadoEmergencia.ACTIVA);
-        emergencia.setFechaHoraInicio(LocalDateTime.now());
-        emergencia.setProtocolo("Conserve la calma, evite el pánico, ubíquese en las zonas seguras y siga las instrucciones del brigadista.");
+        emergencia.setActivadaEn(LocalDateTime.now());
 
         Emergencia savedEmergencia = emergenciaRepository.save(emergencia);
 
@@ -66,13 +68,41 @@ public class EmergenciaService {
         return mapToResponse(emergencia);
     }
 
+    public ResumenSalonesResponse obtenerResumenSalones(Long emergenciaId, UsuarioAutenticado usuario) {
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+
+        List<ConfirmacionSalon> confirmaciones = confirmacionSalonRepository.findByEmergenciaId(emergenciaId);
+
+        List<SalonEstadoDto> listaSalones = confirmaciones.stream().map(c -> new SalonEstadoDto(
+                c.getSalon().getId().longValue(),
+                c.getSalon().getNombre(),
+                c.getEstado().name(),
+                c.getConfirmadoEn(),
+                c.getSalon().getDocente() != null ? c.getSalon().getDocente().getNombre() : "Sin asignar"
+        )).toList();
+
+        int total = listaSalones.size();
+        int confirmados = (int) listaSalones.stream().filter(s -> "A_SALVO".equals(s.getEstado())).count();
+        int pendientes = total - confirmados;
+
+        return new ResumenSalonesResponse(
+                emergencia.getId().longValue(),
+                emergencia.getTipo(),
+                total,
+                confirmados,
+                pendientes,
+                listaSalones
+        );
+    }
+
     private EmergenciaResponse mapToResponse(Emergencia emergencia) {
-        EmergenciaResponse res = new EmergenciaResponse();
-        res.setId(emergencia.getId());
-        res.setTipo(emergencia.getTipo() != null ? emergencia.getTipo().name() : "SISMO");
-        res.setEstado(emergencia.getEstado() != null ? emergencia.getEstado().name() : "ACTIVA");
-        res.setFechaHoraInicio(emergencia.getFechaHoraInicio() != null ? emergencia.getFechaHoraInicio().toString() : "");
-        res.setProtocolo(emergencia.getProtocolo());
-        return res;
+        return new EmergenciaResponse(
+            emergencia.getId(),
+            emergencia.getTipo(),
+            emergencia.getEstado(),
+            emergencia.getActivadaEn(),
+            List.of("Conserve la calma", "Ubíquese en las zonas seguras", "Siga las instrucciones del brigadista")
+        );
     }
 }

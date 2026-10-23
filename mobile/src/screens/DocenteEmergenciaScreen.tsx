@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontWeight: 'bold',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
     borderRadius: 4,
     marginBottom: spacing.md,
   },

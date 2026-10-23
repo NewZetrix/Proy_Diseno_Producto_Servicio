@@ -9,6 +9,17 @@ public class ConfirmacionResponse {
     private long salonesConfirmados;
     private long totalSalones;
 
+    // Constructor completo
+    public ConfirmacionResponse(Long id, Long salonId, String nombreSalon, String estado, String fechaHoraConfirmacion, long salonesConfirmados, long totalSalones) {
+        this.id = id;
+        this.salonId = salonId;
+        this.nombreSalon = nombreSalon;
+        this.estado = estado;
+        this.fechaHoraConfirmacion = fechaHoraConfirmacion;
+        this.salonesConfirmados = salonesConfirmados;
+        this.totalSalones = totalSalones;
+    }
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
