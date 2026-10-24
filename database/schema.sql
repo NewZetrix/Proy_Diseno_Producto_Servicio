@@ -1,69 +1,70 @@
-create database safeschool;
-use safeschool;
+CREATE DATABASE IF NOT EXISTS safeschool;
+USE safeschool;
 
 CREATE TABLE colegio (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
   nombre VARCHAR(120) NOT NULL,
   direccion VARCHAR(200)
 );
+
 CREATE TABLE usuario (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  colegio_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  colegio_id BIGINT NOT NULL,
   nombre VARCHAR(100) NOT NULL,
   correo VARCHAR(120) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
-  rol ENUM('DIRECTOR','DOCENTE','PADRE') NOT NULL,
+  rol ENUM('DIRECTOR', 'DOCENTE', 'PADRE') NOT NULL,
   FOREIGN KEY (colegio_id) REFERENCES colegio(id)
 );
+
 CREATE TABLE salon (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  colegio_id INT NOT NULL,
-  docente_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  colegio_id BIGINT NOT NULL,
+  docente_id BIGINT NOT NULL,
   nombre VARCHAR(30) NOT NULL,
   grado VARCHAR(30),
   FOREIGN KEY (colegio_id) REFERENCES colegio(id),
   FOREIGN KEY (docente_id) REFERENCES usuario(id)
 );
+
 CREATE TABLE estudiante (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  salon_id INT NOT NULL,
-  apoderado_id INT NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  salon_id BIGINT NOT NULL,
+  apoderado_id BIGINT NOT NULL,
   nombre VARCHAR(100) NOT NULL,
   FOREIGN KEY (salon_id) REFERENCES salon(id),
   FOREIGN KEY (apoderado_id) REFERENCES usuario(id)
 );
+
 CREATE TABLE emergencia (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  colegio_id INT NOT NULL,
-  activada_por INT NOT NULL,
-  tipo ENUM('SISMO','INCENDIO','INTRUSO') NOT NULL,
-  estado ENUM('ACTIVA','FINALIZADA') NOT NULL DEFAULT 'ACTIVA',
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  colegio_id BIGINT NOT NULL,
+  activada_por BIGINT NOT NULL,
+  tipo ENUM('SISMO', 'INCENDIO', 'INTRUSO') NOT NULL,
+  estado ENUM('ACTIVA', 'FINALIZADA') NOT NULL DEFAULT 'ACTIVA',
   activada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finalizada_en DATETIME NULL,
   FOREIGN KEY (colegio_id) REFERENCES colegio(id),
   FOREIGN KEY (activada_por) REFERENCES usuario(id)
 );
+
 CREATE TABLE confirmacion_salon (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  emergencia_id INT NOT NULL,
-  salon_id INT NOT NULL,
-  confirmado_por INT NULL,
-  estado ENUM('PENDIENTE','A_SALVO') NOT NULL DEFAULT 'PENDIENTE',
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  emergencia_id BIGINT NOT NULL,
+  salon_id BIGINT NOT NULL,
+  confirmado_por BIGINT NULL,
+  estado ENUM('PENDIENTE', 'A_SALVO') NOT NULL DEFAULT 'PENDIENTE',
   confirmado_en DATETIME NULL,
   UNIQUE (emergencia_id, salon_id),
   FOREIGN KEY (emergencia_id) REFERENCES emergencia(id),
   FOREIGN KEY (salon_id) REFERENCES salon(id),
   FOREIGN KEY (confirmado_por) REFERENCES usuario(id)
 );
+
 CREATE TABLE notificacion (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  emergencia_id INT NOT NULL,
-  estudiante_id INT NOT NULL,
-  apoderado_id INT NOT NULL,
-  mensaje TEXT NOT NULL,
-  estado ENUM('ENVIADA','FALLIDA') NOT NULL,
-  enviada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (emergencia_id) REFERENCES emergencia(id),
-  FOREIGN KEY (estudiante_id) REFERENCES estudiante(id),
-  FOREIGN KEY (apoderado_id) REFERENCES usuario(id)
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id BIGINT NOT NULL,
+  mensaje VARCHAR(500) NOT NULL,
+  estado VARCHAR(50) NOT NULL DEFAULT 'ENVIADA',
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 );
