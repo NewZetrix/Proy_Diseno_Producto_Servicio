@@ -9,12 +9,20 @@ type Props = {
   emergenciaId: number;
   salonId: number;
   nombreSalon: string;
+  estadoInicial?: 'PENDIENTE' | 'A_SALVO';
+  embedded?: boolean;
 };
 
-export function DocenteEmergenciaScreen({ emergenciaId, salonId, nombreSalon }: Props) {
+export function DocenteEmergenciaScreen({
+  emergenciaId,
+  salonId,
+  nombreSalon,
+  estadoInicial = 'PENDIENTE',
+  embedded = false,
+}: Props) {
   const { token } = useSession();
   const [loading, setLoading] = useState(false);
-  const [estado, setEstado] = useState<'PENDIENTE' | 'A_SALVO'>('PENDIENTE');
+  const [estado, setEstado] = useState<'PENDIENTE' | 'A_SALVO'>(estadoInicial);
   const requestInFlight = useRef(false);
   const confirmado = estado === 'A_SALVO';
 
@@ -45,7 +53,7 @@ export function DocenteEmergenciaScreen({ emergenciaId, salonId, nombreSalon }: 
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, embedded && styles.embeddedContainer]}>
       <Text style={styles.badge}>EMERGENCIA ACTIVA</Text>
       <Text style={styles.salonText}>Salón: {nombreSalon}</Text>
       <Text style={styles.instruction}>
@@ -90,6 +98,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF5F5',
+  },
+  embeddedContainer: {
+    flex: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   badge: {
     backgroundColor: colors.danger,

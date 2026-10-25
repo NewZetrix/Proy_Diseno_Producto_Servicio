@@ -1,21 +1,58 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, spacing, typography } from '../constants/theme';
 import { useSession } from '../context/SessionContext';
-import { api, mensajeDeError } from '../services/api';
-import { activarEmergencia } from '../services/emergencias';
+import { ApiError, mensajeDeError } from '../services/api';
+import { activarEmergencia, obtenerEmergenciaActiva } from '../services/emergencias';
+import type { EmergenciaResponse } from '../services/emergencias';
 import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { nombre, rol, token, clearSession } = useSession();
-  const [health, setHealth] = useState<string>('Sin probar');
-  const [healthLoading, setHealthLoading] = useState(false);
+  const [emergenciaActiva, setEmergenciaActiva] = useState<EmergenciaResponse | null>(null);
+  const [checkingEmergency, setCheckingEmergency] = useState(true);
   const [activating, setActivating] = useState(false);
   const [tipoSeleccionado, setTipoSeleccionado] = useState<'SISMO'>('SISMO');
+
+  useFocusEffect(
+    useCallback(() => {
+      if ((rol !== 'DOCENTE' && rol !== 'DIRECTOR') || !token) {
+        setCheckingEmergency(false);
+        setEmergenciaActiva(null);
+        return;
+      }
+
+      let mounted = true;
+      setCheckingEmergency(true);
+      obtenerEmergenciaActiva(token)
+        .then(emergencia => {
+          if (mounted) {
+            setEmergenciaActiva(emergencia);
+          }
+        })
+        .catch(error => {
+          if (!mounted) return;
+          setEmergenciaActiva(null);
+          if (!(error instanceof ApiError) || error.status !== 404) {
+            Alert.alert('No se pudo consultar la emergencia activa', mensajeDeError(error));
+          }
+        })
+        .finally(() => {
+          if (mounted) {
+            setCheckingEmergency(false);
+          }
+        });
+
+      return () => {
+        mounted = false;
+      };
+    }, [rol, token])
+  );
 
   function solicitarConfirmacion() {
     Alert.alert(
@@ -41,25 +78,15 @@ export function HomeScreen({ navigation }: Props) {
     setActivating(true);
     try {
       const emergencia = await activarEmergencia(token, tipoSeleccionado);
-      navigation.navigate('ActivarEmergencia', { emergencia });
+      if (rol === 'DIRECTOR') {
+        navigation.navigate('DirectorEmergencia', { emergenciaId: emergencia.id });
+      } else {
+        navigation.navigate('ActivarEmergencia', { emergencia });
+      }
     } catch (error) {
       Alert.alert('No se pudo activar la emergencia', mensajeDeError(error));
     } finally {
       setActivating(false);
-    }
-  }
-
-  async function probarHealth() {
-    setHealthLoading(true);
-    try {
-      const data = await api<{ status: string; servicio: string }>('/api/health', {
-        token,
-      });
-      setHealth(`${data.status} · ${data.servicio}`);
-    } catch (e) {
-      setHealth(e instanceof Error ? e.message : 'Error de conexión');
-    } finally {
-      setHealthLoading(false);
     }
   }
 
@@ -72,45 +99,57 @@ export function HomeScreen({ navigation }: Props) {
 
       {(rol === 'DIRECTOR' || rol === 'DOCENTE') && (
         <View style={styles.emergencySection}>
-          <Text style={styles.sectionTitle}>Tipo de emergencia</Text>
-          <Pressable
-            accessibilityRole="radio"
-            accessibilityState={{ checked: tipoSeleccionado === 'SISMO' }}
-            accessibilityLabel="Sismo"
-            onPress={() => setTipoSeleccionado('SISMO')}
-            disabled={activating}
-            style={({ pressed }) => [
-              styles.typeOption,
-              pressed && styles.typeOptionPressed,
-            ]}
-          >
-            <Text style={styles.radio}>{tipoSeleccionado === 'SISMO' ? '●' : '○'}</Text>
-            <Text style={styles.typeName}>Sismo</Text>
-            <Text style={styles.typeTag}>PMV 1</Text>
-          </Pressable>
+          {emergenciaActiva && rol === 'DIRECTOR' ? (
+            <PrimaryButton
+              title="MONITOREAR EMERGENCIA ACTIVA"
+              onPress={() => navigation.navigate('DirectorEmergencia', {
+                emergenciaId: emergenciaActiva.id,
+              })}
+              variant="danger"
+              style={styles.emergencyButton}
+            />
+          ) : emergenciaActiva && rol === 'DOCENTE' ? (
+            <PrimaryButton
+              title="ABRIR EMERGENCIA ACTIVA"
+              onPress={() => navigation.navigate('ActivarEmergencia', { emergencia: emergenciaActiva })}
+              variant="danger"
+              style={styles.emergencyButton}
+            />
+          ) : checkingEmergency ? (
+            <Text style={styles.safetyNote}>Buscando una emergencia activa...</Text>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Tipo de emergencia</Text>
+              <Pressable
+                accessibilityRole="radio"
+                accessibilityState={{ checked: tipoSeleccionado === 'SISMO' }}
+                accessibilityLabel="Sismo"
+                onPress={() => setTipoSeleccionado('SISMO')}
+                disabled={activating}
+                style={({ pressed }) => [
+                  styles.typeOption,
+                  pressed && styles.typeOptionPressed,
+                ]}
+              >
+                <Text style={styles.radio}>{tipoSeleccionado === 'SISMO' ? '●' : '○'}</Text>
+                <Text style={styles.typeName}>Sismo</Text>
+                <Text style={styles.typeTag}>PMV 1</Text>
+              </Pressable>
 
-          <PrimaryButton
-            title="🚨  ACTIVAR EMERGENCIA"
-            onPress={solicitarConfirmacion}
-            loading={activating}
-            variant="danger"
-            style={styles.emergencyButton}
-          />
-          <Text style={styles.safetyNote}>
-            Se te pedirá confirmar antes de enviar la alerta.
-          </Text>
+              <PrimaryButton
+                title="🚨  ACTIVAR EMERGENCIA"
+                onPress={solicitarConfirmacion}
+                loading={activating}
+                variant="danger"
+                style={styles.emergencyButton}
+              />
+              <Text style={styles.safetyNote}>
+                Se te pedirá confirmar antes de enviar la alerta.
+              </Text>
+            </>
+          )}
         </View>
       )}
-
-      <Text style={styles.label}>Estado del backend:</Text>
-      <Text style={styles.value}>{health}</Text>
-
-      <PrimaryButton
-        title="Probar /api/health"
-        onPress={probarHealth}
-        loading={healthLoading}
-        style={styles.button}
-      />
 
       <PrimaryButton
         title="Cerrar sesión"
@@ -185,18 +224,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: typography.sizes.sm,
     textAlign: 'center',
-  },
-  label: {
-    fontSize: typography.caption,
-    color: colors.textMuted,
-    marginBottom: spacing.xs,
-  },
-  value: {
-    fontSize: typography.body,
-    color: colors.text,
-    marginBottom: spacing.lg,
-  },
-  button: {
-    marginBottom: spacing.md,
   },
 });

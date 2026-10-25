@@ -1,8 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, ActivityIndicator, ScrollView, View, Text, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, typography } from '../constants/theme';
 import type { RootStackParamList } from '../navigation/AppNavigator';
+import { useSession } from '../context/SessionContext';
+import { mensajeDeError } from '../services/api';
+import { obtenerSalonesDocente } from '../services/emergencias';
+import type { SalonDocenteResponse } from '../services/emergencias';
+import { DocenteEmergenciaScreen } from './DocenteEmergenciaScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActivarEmergencia'>;
 
@@ -10,9 +15,41 @@ const instructionIcons = ['●', '◆', '➜'];
 
 export function ActivarEmergenciaScreen({ route }: Props) {
   const { emergencia } = route.params;
+  const { rol, token } = useSession();
+  const [salones, setSalones] = useState<SalonDocenteResponse[]>([]);
+  const [loadingSalones, setLoadingSalones] = useState(false);
+
+  useEffect(() => {
+    if (rol !== 'DOCENTE' || !token) {
+      return;
+    }
+
+    let mounted = true;
+    setLoadingSalones(true);
+    obtenerSalonesDocente(token, emergencia.id)
+      .then(datos => {
+        if (mounted) {
+          setSalones(datos);
+        }
+      })
+      .catch(error => {
+        if (mounted) {
+          Alert.alert('No se pudieron cargar tus salones', mensajeDeError(error));
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoadingSalones(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [emergencia.id, rol, token]);
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.statusBadge}>
         <Text style={styles.statusText}>EMERGENCIA ACTIVA</Text>
       </View>
@@ -31,15 +68,37 @@ export function ActivarEmergenciaScreen({ route }: Props) {
           </View>
         ))}
       </View>
-    </View>
+      {rol === 'DOCENTE' && (
+        <View style={styles.teacherSection}>
+          {loadingSalones ? (
+            <ActivityIndicator size="large" color={colors.primary} />
+          ) : salones.length > 0 ? (
+            salones.map(salon => (
+              <DocenteEmergenciaScreen
+                key={`${emergencia.id}-${salon.salonId}`}
+                emergenciaId={emergencia.id}
+                salonId={salon.salonId}
+                nombreSalon={salon.nombreSalon}
+                estadoInicial={salon.estado}
+                embedded
+              />
+            ))
+          ) : (
+            <Text style={styles.noSalonText}>
+              No hay salones asignados a tu usuario en esta emergencia.
+            </Text>
+          )}
+        </View>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: spacing.lg,
-    justifyContent: 'center',
+    paddingBottom: spacing.xl,
     backgroundColor: '#FFF5F5',
   },
   statusBadge: {
@@ -70,6 +129,15 @@ const styles = StyleSheet.create({
   },
   instructions: {
     gap: spacing.md,
+  },
+  teacherSection: {
+    marginTop: spacing.xl,
+    gap: spacing.md,
+  },
+  noSalonText: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.md,
+    textAlign: 'center',
   },
   instructionRow: {
     flexDirection: 'row',

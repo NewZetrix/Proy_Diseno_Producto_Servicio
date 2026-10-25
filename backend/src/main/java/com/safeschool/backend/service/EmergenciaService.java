@@ -85,6 +85,30 @@ public class EmergenciaService {
         return mapToResponse(emergencia);
     }
 
+    @Transactional
+    public EmergenciaResponse finalizarEmergencia(Long emergenciaId, UsuarioAutenticado usuarioAuth) {
+        if (usuarioAuth.rol() != Rol.DIRECTOR) {
+            throw new AccesoNoAutorizadoException("Solo un director puede finalizar una emergencia.");
+        }
+
+        Usuario director = usuarioRepository.findById(usuarioAuth.id())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+
+        if (!emergencia.getColegio().getId().equals(director.getColegio().getId())) {
+            throw new AccesoNoAutorizadoException("Solo puede finalizar emergencias de su colegio.");
+        }
+        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
+            throw new ConflictoException("La emergencia ya fue finalizada.");
+        }
+
+        emergencia.setEstado(EstadoEmergencia.FINALIZADA);
+        emergencia.setFinalizadaEn(LocalDateTime.now());
+        Emergencia emergenciaFinalizada = emergenciaRepository.save(emergencia);
+        return mapToResponse(emergenciaFinalizada);
+    }
+
     public ResumenSalonesResponse obtenerResumenSalones(Long emergenciaId, UsuarioAutenticado usuario) {
         Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
@@ -111,6 +135,37 @@ public class EmergenciaService {
                 pendientes,
                 listaSalones
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SalonEstadoDto> obtenerSalonesDocente(Long emergenciaId, UsuarioAutenticado usuarioAuth) {
+        if (usuarioAuth.rol() != Rol.DOCENTE) {
+            throw new AccesoNoAutorizadoException("Solo un docente puede consultar sus salones de emergencia.");
+        }
+
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
+            throw new ConflictoException("La emergencia no está activa");
+        }
+
+        List<Salon> salones = salonRepository.findByDocenteId(usuarioAuth.id());
+        return salones.stream()
+                .filter(salon -> salon.getColegio().getId().equals(emergencia.getColegio().getId()))
+                .map(salon -> {
+                    ConfirmacionSalon confirmacion = confirmacionSalonRepository
+                            .findByEmergenciaIdAndSalonId(emergenciaId, salon.getId().longValue())
+                            .orElseThrow(() -> new RecursoNoEncontradoException(
+                                    "El salón no tiene confirmación en esta emergencia"));
+                    return new SalonEstadoDto(
+                            salon.getId().longValue(),
+                            salon.getNombre(),
+                            confirmacion.getEstado().name(),
+                            confirmacion.getConfirmadoEn(),
+                            salon.getDocente().getNombre()
+                    );
+                })
+                .toList();
     }
 
     private EmergenciaResponse mapToResponse(Emergencia emergencia) {

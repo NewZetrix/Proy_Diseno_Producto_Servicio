@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { mensajeDeError } from '../services/api';
+import { api, mensajeDeError } from '../services/api';
+import { finalizarEmergencia as finalizarEmergenciaApi } from '../services/emergencias';
 import { useSession } from '../context/SessionContext';
 import { colors, spacing, typography } from '../constants/theme';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type SalonEstado = {
   salonId: number;
@@ -22,31 +25,26 @@ type ResumenSalones = {
   salones: SalonEstado[];
 };
 
-type Props = {
-  emergenciaId: number;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'DirectorEmergencia'>;
 
-export function DirectorEmergenciaScreen({ emergenciaId }: Props) {
-  const { session } = useSession();
+export function DirectorEmergenciaScreen({ route, navigation }: Props) {
+  const { emergenciaId } = route.params;
+  const { token } = useSession();
   const [resumen, setResumen] = useState<ResumenSalones | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
 
-  const fetchResumenSalones = async () => {
-    if (!session?.token) return;
+  const fetchResumenSalones = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
-      const response = await fetch(`http://192.168.18.27:8080/api/emergencias/${emergenciaId}/salones`, {
-        headers: {
-          'Authorization': `Bearer ${session.token}`,
-          'Content-Type': 'application/json',
-        },
+      const data = await api<ResumenSalones>(`/api/emergencias/${emergenciaId}/salones`, {
+        token,
       });
-
-      if (!response.ok) {
-        throw new Error('No se pudo obtener el estado de los salones.');
-      }
-
-      const data = await response.json();
       setResumen(data);
     } catch (error) {
       Alert.alert('Error', mensajeDeError(error));
@@ -54,17 +52,47 @@ export function DirectorEmergenciaScreen({ emergenciaId }: Props) {
       setLoading(false);
       setRefreshing(false);
     }
+  }, [emergenciaId, token]);
+
+  const solicitarFinalizacion = () => {
+    const pendientes = resumen?.salonesPendientes ?? 0;
+    const advertencia = pendientes > 0
+      ? `Todavía hay ${pendientes} salón(es) pendientes. `
+      : '';
+    Alert.alert(
+      'Finalizar emergencia',
+      `${advertencia}Esta acción cerrará el protocolo y permitirá activar otra emergencia. ¿Deseas continuar?`,
+      [
+        { text: 'Seguir monitoreando', style: 'cancel' },
+        { text: 'Finalizar', style: 'destructive', onPress: confirmarFinalizacion },
+      ]
+    );
+  };
+
+  const confirmarFinalizacion = async () => {
+    if (!token || finalizing) return;
+    setFinalizing(true);
+    try {
+      await finalizarEmergenciaApi(token, emergenciaId);
+      Alert.alert('Emergencia finalizada', 'El protocolo se cerró correctamente.', [
+        { text: 'Aceptar', onPress: () => navigation.goBack() },
+      ]);
+    } catch (error) {
+      Alert.alert('No se pudo finalizar la emergencia', mensajeDeError(error));
+    } finally {
+      setFinalizing(false);
+    }
   };
 
   // Actualización periódica cada 5 segundos mientras la emergencia está activa
   useEffect(() => {
-    fetchResumenSalones();
+    void fetchResumenSalones();
     const interval = setInterval(() => {
-      fetchResumenSalones();
+      void fetchResumenSalones();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [emergenciaId]);
+  }, [fetchResumenSalones]);
 
   if (loading && !resumen) {
     return (
@@ -88,9 +116,13 @@ export function DirectorEmergenciaScreen({ emergenciaId }: Props) {
       <FlatList
         data={resumen?.salones}
         keyExtractor={(item) => item.salonId.toString()}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchResumenSalones(); }} />
-        }
+        refreshControl={<RefreshControl
+          refreshing={refreshing}
+          onRefresh={() => {
+            setRefreshing(true);
+            void fetchResumenSalones();
+          }}
+        />}
         renderItem={({ item }) => {
           const isA_Salvo = item.estado === 'A_SALVO';
           return (
@@ -107,6 +139,13 @@ export function DirectorEmergenciaScreen({ emergenciaId }: Props) {
             </View>
           );
         }}
+      />
+      <PrimaryButton
+        title="FINALIZAR EMERGENCIA"
+        onPress={solicitarFinalizacion}
+        loading={finalizing}
+        variant="danger"
+        style={styles.finalizeButton}
       />
     </View>
   );
@@ -187,5 +226,9 @@ const styles = StyleSheet.create({
   statusText: {
     fontWeight: 'bold',
     fontSize: typography.sizes.xs,
+  },
+  finalizeButton: {
+    marginTop: spacing.sm,
+    minHeight: 60,
   },
 });
