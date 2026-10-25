@@ -36,7 +36,7 @@ public class ConfirmacionService {
             throw new AccesoNoAutorizadoException("Solo un docente puede confirmar un salón");
         }
 
-        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
 
         Integer salonIdInt = salonId.intValue();

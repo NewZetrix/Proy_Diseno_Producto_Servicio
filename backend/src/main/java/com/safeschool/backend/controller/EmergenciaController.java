@@ -1,8 +1,12 @@
 package com.safeschool.backend.controller;
 
+import com.safeschool.backend.dto.ActivarEmergenciaRequest;
+import com.safeschool.backend.dto.EmergenciaResponse;
 import com.safeschool.backend.dto.ResumenSalonesResponse;
 import com.safeschool.backend.security.UsuarioAutenticado;
 import com.safeschool.backend.service.EmergenciaService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +20,22 @@ public class EmergenciaController {
 
     public EmergenciaController(EmergenciaService emergenciaService) {
         this.emergenciaService = emergenciaService;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('DIRECTOR', 'DOCENTE')")
+    public ResponseEntity<EmergenciaResponse> activarEmergencia(
+            @Valid @RequestBody ActivarEmergenciaRequest request,
+            @AuthenticationPrincipal UsuarioAutenticado usuario) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(emergenciaService.activarEmergencia(request, usuario));
+    }
+
+    @GetMapping("/activa")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<EmergenciaResponse> obtenerEmergenciaActiva(
+            @AuthenticationPrincipal UsuarioAutenticado usuario) {
+        return ResponseEntity.ok(emergenciaService.obtenerEmergenciaActiva(usuario));
     }
 
     // Endpoint HU04: Lista de salones y resumen para el Director[cite: 11]

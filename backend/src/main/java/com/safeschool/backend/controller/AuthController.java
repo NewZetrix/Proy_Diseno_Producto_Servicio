@@ -30,10 +30,3 @@ public class AuthController {
         return usuario;
     }
 }
-
-/*
-
-git add (lo que se avanzo xd)
-git commit -m "feat: login con BCrypt"
-
-*/
