@@ -1,68 +1,35 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { activarEmergencia } from '../services/emergencias';
-import { mensajeDeError } from '../services/api';
-import { useSession } from '../context/SessionContext';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, typography } from '../constants/theme';
+import type { RootStackParamList } from '../navigation/AppNavigator';
 
-export function ActivarEmergenciaScreen() {
-  const { session } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [confirmando, setConfirmando] = useState(false);
+type Props = NativeStackScreenProps<RootStackParamList, 'ActivarEmergencia'>;
 
-  const handlePress = () => {
-    if (!confirmando) {
-      setConfirmando(true);
-      return;
-    }
-    ejecutarActivacion();
-  };
+const instructionIcons = ['●', '◆', '➜'];
 
-  const ejecutarActivacion = async () => {
-    if (!session?.token) {
-      Alert.alert('Error', 'No hay una sesión activa.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await activarEmergencia(session.token, 'SISMO');
-      Alert.alert('¡Alerta Activada!', 'Se ha emitido la señal de emergencia por SISMO.');
-      setConfirmando(false);
-    } catch (error) {
-      Alert.alert('Error', mensajeDeError(error));
-      setConfirmando(false);
-    } finally {
-      setLoading(false);
-    }
-  };
+export function ActivarEmergenciaScreen({ route }: Props) {
+  const { emergencia } = route.params;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Panel de Control - Emergencias</Text>
+      <View style={styles.statusBadge}>
+        <Text style={styles.statusText}>EMERGENCIA ACTIVA</Text>
+      </View>
+      <Text style={styles.title}>Protocolo activo</Text>
       <Text style={styles.subtitle}>
-        {confirmando
-          ? '¿Está seguro de activar la ALERTA DE SISMO? Toque nuevamente para confirmar.'
-          : 'Presione el botón para iniciar la alerta de emergencia en la institución.'}
+        {emergencia.tipo} · Sigue estas instrucciones:
       </Text>
 
-      <View style={styles.buttonContainer}>
-        <PrimaryButton
-          title={confirmando ? '¡CONFIRMAR ACTIVACIÓN!' : 'ACTIVAR EMERGENCIA'}
-          onPress={handlePress}
-          variant="danger"
-          loading={loading}
-        />
-        {confirmando && (
-          <View style={{ marginTop: spacing.md }}>
-            <PrimaryButton
-              title="Cancelar"
-              onPress={() => setConfirmando(false)}
-              variant="secondary"
-            />
+      <View style={styles.instructions}>
+        {emergencia.instrucciones.map((instruccion, index) => (
+          <View key={`${emergencia.id}-${index}`} style={styles.instructionRow}>
+            <Text style={styles.instructionIcon}>
+              {instructionIcons[index % instructionIcons.length]}
+            </Text>
+            <Text style={styles.instructionText}>{instruccion}</Text>
           </View>
-        )}
+        ))}
       </View>
     </View>
   );
@@ -73,12 +40,25 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFF5F5',
+  },
+  statusBadge: {
+    alignSelf: 'center',
+    backgroundColor: colors.danger,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    marginBottom: spacing.lg,
+  },
+  statusText: {
+    color: colors.surface,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
   },
   title: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold as any,
-    color: colors.primary,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.danger,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
@@ -88,7 +68,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
-  buttonContainer: {
-    width: '100%',
+  instructions: {
+    gap: spacing.md,
+  },
+  instructionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: spacing.md,
+  },
+  instructionIcon: {
+    width: 40,
+    height: 40,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    color: colors.danger,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    marginRight: spacing.md,
+  },
+  instructionText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: typography.sizes.md,
+    lineHeight: 24,
   },
 });

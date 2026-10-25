@@ -4,8 +4,8 @@ export interface EmergenciaResponse {
   id: number;
   tipo: string;
   estado: string;
-  fechaHoraInicio: string;
-  protocolo: string;
+  activadaEn: string;
+  instrucciones: string[];
 }
 
 export interface ConfirmacionResponse {

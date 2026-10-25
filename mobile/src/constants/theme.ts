@@ -28,10 +28,9 @@ export const typography = {
     xl: 24,
   },
   weights: {
-    normal: '400',
-    bold: '700',
+    normal: '400' as const,
+    bold: '700' as const,
   },
-  // Mantenemos tus propiedades originales por si se usan en otra parte
   title: 28,
   subtitle: 20,
   body: 16,

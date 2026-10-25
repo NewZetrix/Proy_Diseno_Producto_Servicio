@@ -6,12 +6,15 @@ import { useSession } from '../context/SessionContext';
 import { LoginScreen } from '../screens/LoginScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { NotificacionesScreen } from '../screens/NotificacionesScreen';
+import { ActivarEmergenciaScreen } from '../screens/ActivarEmergenciaScreen';
 import { colors } from '../constants/theme';
+import type { EmergenciaResponse } from '../services/emergencias';
 
 export type RootStackParamList = {
   Login: undefined;
   Home: undefined;
   Notificaciones: undefined;
+  ActivarEmergencia: { emergencia: EmergenciaResponse };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -49,11 +52,18 @@ export function AppNavigator() {
             options={{ title: 'Notificaciones' }}
           />
         ) : (
-          <Stack.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{ title: 'Inicio' }}
-          />
+          <Stack.Group>
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{ title: 'Inicio' }}
+            />
+            <Stack.Screen
+              name="ActivarEmergencia"
+              component={ActivarEmergenciaScreen}
+              options={{ title: 'Protocolo activo' }}
+            />
+          </Stack.Group>
         )}
       </Stack.Navigator>
     </NavigationContainer>
