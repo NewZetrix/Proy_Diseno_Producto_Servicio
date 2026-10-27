@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useSession } from '../context/SessionContext';
 import { LoginScreen } from '../screens/LoginScreen';
 import { HomeScreen } from '../screens/HomeScreen';
-import { NotificacionesScreen } from '../screens/NotificacionesScreen';
+import { PadreNotificacionesScreen } from '../screens/PadreNotificacionesScreen';
 import { ActivarEmergenciaScreen } from '../screens/ActivarEmergenciaScreen';
 import { DirectorEmergenciaScreen } from '../screens/DirectorEmergenciaScreen';
 import { colors } from '../constants/theme';
@@ -80,8 +80,8 @@ export function AppNavigator() {
         ) : rol === 'PADRE' ? (
           <Stack.Screen
             name="Notificaciones"
-            component={NotificacionesScreen}
-            options={{ title: 'Notificaciones' }}
+            component={PadreNotificacionesScreen}
+            options={{ title: 'Centro de Alertas' }}
           />
         ) : (
           <Stack.Group>
