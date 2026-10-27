@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "notificacion")
 @Getter
@@ -20,6 +22,18 @@ public class Notificacion {
     @Column(nullable = false, length = 500)
     private String mensaje;
 
-    @Column(nullable = false)
-    private String estado = "ENVIADA";
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EstadoNotificacion estado = EstadoNotificacion.FALLIDA;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estudiante_id")
+    private Estudiante estudiante;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "emergencia_id")
+    private Emergencia emergencia;
+
+    @Column(name = "fecha_creacion", nullable = false)
+    private LocalDateTime fechaCreacion = LocalDateTime.now();
 }

@@ -1,12 +1,14 @@
 package com.safeschool.backend.service;
 
 import com.safeschool.backend.dto.ConfirmacionResponse;
+import com.safeschool.backend.event.SalonConfirmadoEvent;
 import com.safeschool.backend.exception.AccesoNoAutorizadoException;
 import com.safeschool.backend.exception.ConflictoException;
 import com.safeschool.backend.exception.RecursoNoEncontradoException;
 import com.safeschool.backend.model.*;
 import com.safeschool.backend.repository.*;
 import com.safeschool.backend.security.UsuarioAutenticado;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +21,18 @@ public class ConfirmacionService {
     private final SalonRepository salonRepository;
     private final ConfirmacionSalonRepository confirmacionSalonRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ConfirmacionService(EmergenciaRepository emergenciaRepository,
                                SalonRepository salonRepository,
                                ConfirmacionSalonRepository confirmacionSalonRepository,
-                               UsuarioRepository usuarioRepository) {
+                               UsuarioRepository usuarioRepository,
+                               ApplicationEventPublisher eventPublisher) {
         this.emergenciaRepository = emergenciaRepository;
         this.salonRepository = salonRepository;
         this.confirmacionSalonRepository = confirmacionSalonRepository;
         this.usuarioRepository = usuarioRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -69,6 +74,7 @@ public class ConfirmacionService {
             confirmacion.setConfirmadoEn(LocalDateTime.now());
             confirmacion.setConfirmadoPor(docente);
             confirmacionSalonRepository.save(confirmacion);
+            eventPublisher.publishEvent(new SalonConfirmadoEvent(emergenciaId, salonId));
         }
 
         long salonesConfirmados = confirmacionSalonRepository.countByEmergenciaIdAndEstado(emergenciaId, EstadoConfirmacion.A_SALVO);
