@@ -34,6 +34,7 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
+  const [finalized, setFinalized] = useState(false);
 
   const fetchResumenSalones = useCallback(async () => {
     if (!token) {
@@ -74,6 +75,7 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
     setFinalizing(true);
     try {
       await finalizarEmergenciaApi(token, emergenciaId);
+      setFinalized(true);
       Alert.alert('Emergencia finalizada', 'El protocolo se cerró correctamente.', [
         { text: 'Aceptar', onPress: () => navigation.goBack() },
       ]);
@@ -86,13 +88,15 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
 
   // Actualización periódica cada 5 segundos mientras la emergencia está activa
   useEffect(() => {
+    if (finalized) return;
+
     void fetchResumenSalones();
     const interval = setInterval(() => {
       void fetchResumenSalones();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [fetchResumenSalones]);
+  }, [fetchResumenSalones, finalized]);
 
   if (loading && !resumen) {
     return (
