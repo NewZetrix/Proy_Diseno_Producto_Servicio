@@ -31,6 +31,9 @@ class NotificacionServiceTest {
     @Mock
     private NotificacionRepository notificacionRepository;
 
+    @Mock
+    private MensajeIAService mensajeIAService;
+
     private NotificacionService notificacionService;
 
     @BeforeEach
@@ -38,7 +41,8 @@ class NotificacionServiceTest {
         notificacionService = new NotificacionService(
                 estudianteRepository,
                 emergenciaRepository,
-                notificacionRepository);
+                notificacionRepository,
+                mensajeIAService);
     }
 
     @Test
@@ -53,18 +57,26 @@ class NotificacionServiceTest {
         when(notificacionRepository.save(any(Notificacion.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
+        when(mensajeIAService.generarMensajeSeguridad("Diego", "SISMO"))
+                .thenReturn("Su hijo/a Diego se encuentra a salvo en el colegio ante la emergencia de SISMO.");
+        when(mensajeIAService.generarMensajeSeguridad("Ana", "SISMO"))
+                .thenReturn("Su hijo/a Ana se encuentra a salvo en el colegio ante la emergencia de SISMO.");
+
         notificacionService.notificarSalonConfirmado(1L, 2L);
 
         ArgumentCaptor<Notificacion> notificacionCaptor = ArgumentCaptor.forClass(Notificacion.class);
         verify(notificacionRepository, times(2)).save(notificacionCaptor.capture());
         List<Notificacion> guardadas = notificacionCaptor.getAllValues();
+
         assertEquals(EstadoNotificacion.ENVIADA, guardadas.get(0).getEstado());
         assertEquals(EstadoNotificacion.ENVIADA, guardadas.get(1).getEstado());
         assertEquals(primero, guardadas.get(0).getEstudiante());
         assertEquals(emergencia, guardadas.get(0).getEmergencia());
-        assertEquals("Su hijo/a Diego se encuentra a salvo en el colegio. Emergencia: SISMO.",
+        assertEquals(
+                "Su hijo/a Diego se encuentra a salvo en el colegio ante la emergencia de SISMO.",
                 guardadas.get(0).getMensaje());
-        assertEquals("Su hijo/a Ana se encuentra a salvo en el colegio. Emergencia: SISMO.",
+        assertEquals(
+                "Su hijo/a Ana se encuentra a salvo en el colegio ante la emergencia de SISMO.",
                 guardadas.get(1).getMensaje());
     }
 

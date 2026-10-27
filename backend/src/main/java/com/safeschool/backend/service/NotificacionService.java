@@ -16,13 +16,16 @@ public class NotificacionService {
     private final EstudianteRepository estudianteRepository;
     private final EmergenciaRepository emergenciaRepository;
     private final NotificacionRepository notificacionRepository;
+    private final MensajeIAService mensajeIAService;
 
     public NotificacionService(EstudianteRepository estudianteRepository,
-                              EmergenciaRepository emergenciaRepository,
-                              NotificacionRepository notificacionRepository) {
+            EmergenciaRepository emergenciaRepository,
+            NotificacionRepository notificacionRepository,
+            MensajeIAService mensajeIAService) {
         this.estudianteRepository = estudianteRepository;
         this.emergenciaRepository = emergenciaRepository;
         this.notificacionRepository = notificacionRepository;
+        this.mensajeIAService = mensajeIAService;
     }
 
     @Transactional(readOnly = true)
@@ -49,9 +52,9 @@ public class NotificacionService {
 
     private void enviarNotificacion(Estudiante estudiante, Emergencia emergencia) {
         Usuario apoderado = estudiante.getApoderado();
-        String mensaje = "Su hijo/a " + estudiante.getNombre()
-                + " se encuentra a salvo en el colegio. Emergencia: "
-                + emergencia.getTipo().name() + ".";
+        String mensaje = mensajeIAService.generarMensajeSeguridad(
+                estudiante.getNombre(),
+                emergencia.getTipo().name());
 
         Notificacion notificacion = new Notificacion();
         notificacion.setUsuario(apoderado);
