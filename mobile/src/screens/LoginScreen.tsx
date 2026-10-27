@@ -5,12 +5,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View,
 } from 'react-native';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors, radii, spacing, typography } from '../constants/theme';
 import { useSession } from '../context/SessionContext';
 import { login } from '../services/auth';
+import { registrarDispositivo } from '../services/notificaciones';
 
 export function LoginScreen() {
   const { setSession } = useSession();
@@ -24,12 +24,24 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const data = await login(correo.trim(), password);
+
       await setSession({
         token: data.token,
         rol: data.rol,
         nombre: data.nombre,
         id: data.id,
       });
+
+      // HU03: registrar token del dispositivo si es padre
+      if (data.rol === 'PADRE') {
+        try {
+          // Token simulado para PMV1 (luego se reemplaza por el real de Expo/FCM)
+          const tokenSimulado = `expo-simulado-${data.id}-${Date.now()}`;
+          await registrarDispositivo(data.token, tokenSimulado);
+        } catch {
+          // No bloqueamos el login si falla el registro del dispositivo
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo iniciar sesión');
     } finally {

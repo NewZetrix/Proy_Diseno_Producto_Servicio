@@ -2,18 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useSession } from '../context/SessionContext';
 import { mensajeDeError } from '../services/api';
+import { obtenerNotificaciones, NotificacionResponse } from '../services/notificaciones';
 import { colors, spacing, typography } from '../constants/theme';
-
-type Notificacion = {
-  id: number;
-  mensaje: string;
-  fechaCreacion: string;
-  estado: string;
-};
 
 export function PadreNotificacionesScreen() {
   const { token } = useSession();
-  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const [notificaciones, setNotificaciones] = useState<NotificacionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -24,18 +18,7 @@ export function PadreNotificacionesScreen() {
       return;
     }
     try {
-      const response = await fetch('http://192.168.18.27:8080/api/notificaciones', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('No se pudieron cargar las notificaciones.');
-      }
-
-      const data = await response.json();
+      const data = await obtenerNotificaciones(token);
       setNotificaciones(data);
     } catch (error) {
       Alert.alert('Error', mensajeDeError(error));
@@ -67,7 +50,13 @@ export function PadreNotificacionesScreen() {
         data={notificaciones}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchNotificaciones(); }} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => { 
+              setRefreshing(true); 
+              void fetchNotificaciones(); 
+            }} 
+          />
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
