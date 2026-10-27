@@ -24,7 +24,7 @@ public class Notificacion {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EstadoNotificacion estado = EstadoNotificacion.FALLIDA;
+    private EstadoNotificacion estado = EstadoNotificacion.ENVIADA;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estudiante_id")
