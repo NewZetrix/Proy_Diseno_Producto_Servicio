@@ -1,10 +1,9 @@
 USE safeschool;
 
 INSERT INTO colegio (id, nombre, direccion) VALUES
-  (1, 'I.E. San Martín de Porres', 'Av. Los Álamos 123, Lima');
+  (1, 'Colegio San Martín', 'Av. Ejemplo 123, Lima');
 
--- Contraseña de prueba para todos los usuarios: SafeSchool2026
--- (hash BCrypt, compatible con Spring Security; solo para desarrollo)
+-- Contraseña para todos: SafeSchool2026 (hash BCrypt)
 INSERT INTO usuario (id, colegio_id, nombre, correo, password_hash, rol) VALUES
   (1, 1, 'Carlos Mendoza', 'director@safeschool.test', '$2a$10$EXhgSrU48JvZRczXCgbX.OikKmQf/u9xp/U4yXfzvRNAagcfX8C.q', 'DIRECTOR'),
   (2, 1, 'Lucía Torres',   'lucia@safeschool.test',    '$2a$10$EXhgSrU48JvZRczXCgbX.OikKmQf/u9xp/U4yXfzvRNAagcfX8C.q', 'DOCENTE'),

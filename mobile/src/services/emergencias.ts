@@ -4,8 +4,8 @@ export interface EmergenciaResponse {
   id: number;
   tipo: string;
   estado: string;
-  fechaHoraInicio: string;
-  protocolo: string;
+  activadaEn: string;
+  instrucciones: string[];
 }
 
 export interface ConfirmacionResponse {
@@ -16,6 +16,14 @@ export interface ConfirmacionResponse {
   fechaHoraConfirmacion: string;
   salonesConfirmados: number;
   totalSalones: number;
+}
+
+export interface SalonDocenteResponse {
+  salonId: number;
+  nombreSalon: string;
+  estado: 'PENDIENTE' | 'A_SALVO';
+  horaConfirmacion: string | null;
+  docenteEncargado: string;
 }
 
 // HU01: Activar Emergencia
@@ -31,6 +39,26 @@ export const activarEmergencia = async (token: string, tipo: string = 'SISMO'): 
 export const obtenerEmergenciaActiva = async (token: string): Promise<EmergenciaResponse> => {
   return api<EmergenciaResponse>('/api/emergencias/activa', {
     method: 'GET',
+    token,
+  });
+};
+
+export const obtenerSalonesDocente = async (
+  token: string,
+  emergenciaId: number
+): Promise<SalonDocenteResponse[]> => {
+  return api<SalonDocenteResponse[]>(`/api/emergencias/${emergenciaId}/mis-salones`, {
+    method: 'GET',
+    token,
+  });
+};
+
+export const finalizarEmergencia = async (
+  token: string,
+  emergenciaId: number
+): Promise<EmergenciaResponse> => {
+  return api<EmergenciaResponse>(`/api/emergencias/${emergenciaId}/finalizar`, {
+    method: 'PUT',
     token,
   });
 };

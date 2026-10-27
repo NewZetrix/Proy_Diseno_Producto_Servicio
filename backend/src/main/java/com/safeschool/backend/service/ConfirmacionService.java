@@ -36,25 +36,25 @@ public class ConfirmacionService {
             throw new AccesoNoAutorizadoException("Solo un docente puede confirmar un salón");
         }
 
-        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+
+        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
+            throw new ConflictoException("La emergencia no está activa");
+        }
 
         Integer salonIdInt = salonId.intValue();
         Salon salon = salonRepository.findById(salonIdInt)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Salón no encontrado"));
 
-        if (salon.getColegio() != null && emergencia.getColegio() != null &&
-            !salon.getColegio().getId().equals(emergencia.getColegio().getId())) {
-            throw new RecursoNoEncontradoException("El salón no pertenece a esta emergencia");
-        }
-
         Integer docenteIdInt = usuarioAuth.id();
-        if (salon.getDocente() != null && !salon.getDocente().getId().equals(docenteIdInt)) {
+        if (salon.getDocente() == null || !salon.getDocente().getId().equals(docenteIdInt)) {
             throw new AccesoNoAutorizadoException("Solo puede confirmar su propio salón");
         }
 
-        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
-            throw new ConflictoException("La emergencia no está activa");
+        if (salon.getColegio() != null && emergencia.getColegio() != null &&
+            !salon.getColegio().getId().equals(emergencia.getColegio().getId())) {
+            throw new RecursoNoEncontradoException("El salón no pertenece a esta emergencia");
         }
 
         ConfirmacionSalon confirmacion = confirmacionSalonRepository

@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { PrimaryButton } from '../components/PrimaryButton';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { confirmarSalonASalvo } from '../services/emergencias';
 import { mensajeDeError } from '../services/api';
 import { useSession } from '../context/SessionContext';
@@ -10,33 +9,51 @@ type Props = {
   emergenciaId: number;
   salonId: number;
   nombreSalon: string;
+  estadoInicial?: 'PENDIENTE' | 'A_SALVO';
+  embedded?: boolean;
 };
 
-export function DocenteEmergenciaScreen({ emergenciaId, salonId, nombreSalon }: Props) {
-  const { session } = useSession();
+export function DocenteEmergenciaScreen({
+  emergenciaId,
+  salonId,
+  nombreSalon,
+  estadoInicial = 'PENDIENTE',
+  embedded = false,
+}: Props) {
+  const { token } = useSession();
   const [loading, setLoading] = useState(false);
-  const [confirmado, setConfirmado] = useState(false);
+  const [estado, setEstado] = useState<'PENDIENTE' | 'A_SALVO'>(estadoInicial);
+  const requestInFlight = useRef(false);
+  const confirmado = estado === 'A_SALVO';
 
   const handleConfirmar = async () => {
-    if (!session?.token) {
+    if (!token) {
       Alert.alert('Error', 'No hay una sesión activa.');
       return;
     }
 
+    if (requestInFlight.current || confirmado) {
+      return;
+    }
+
+    requestInFlight.current = true;
     setLoading(true);
     try {
-      await confirmarSalonASalvo(session.token, emergenciaId, salonId);
-      setConfirmado(true);
-      Alert.alert('Reporte Enviado', `El salón ${nombreSalon} ha sido marcado como A SALVO.`);
+      const respuesta = await confirmarSalonASalvo(token, emergenciaId, salonId);
+      if (respuesta.estado !== 'A_SALVO') {
+        throw new Error('El servidor no confirmó el estado A SALVO.');
+      }
+      setEstado('A_SALVO');
     } catch (error) {
       Alert.alert('Error', mensajeDeError(error));
     } finally {
+      requestInFlight.current = false;
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, embedded && styles.embeddedContainer]}>
       <Text style={styles.badge}>EMERGENCIA ACTIVA</Text>
       <Text style={styles.salonText}>Salón: {nombreSalon}</Text>
       <Text style={styles.instruction}>
@@ -44,16 +61,29 @@ export function DocenteEmergenciaScreen({ emergenciaId, salonId, nombreSalon }: 
       </Text>
 
       <View style={styles.actionArea}>
-        <PrimaryButton
-          title={confirmado ? '✓ SALÓN A SALVO' : 'SALÓN A SALVO'}
+        <Pressable
           onPress={handleConfirmar}
-          disabled={confirmado}
-          variant={confirmado ? 'secondary' : 'primary'}
-          loading={loading}
-        />
+          disabled={confirmado || loading}
+          accessibilityRole="button"
+          accessibilityLabel={confirmado ? 'Salón a salvo, reporte enviado' : 'Marcar salón a salvo'}
+          accessibilityState={{ disabled: confirmado || loading, busy: loading }}
+          style={({ pressed }) => [
+            styles.confirmButton,
+            confirmado && styles.confirmButtonDone,
+            pressed && !confirmado && !loading && styles.confirmButtonPressed,
+          ]}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="large" />
+          ) : (
+            <Text style={styles.confirmButtonText}>
+              {confirmado ? '✓  SALÓN A SALVO' : 'SALÓN A SALVO'}
+            </Text>
+          )}
+        </Pressable>
         {confirmado && (
           <Text style={styles.successText}>
-            Reporte registrado con éxito en el sistema.
+            Reporte enviado. El salón quedó registrado como A SALVO.
           </Text>
         )}
       </View>
@@ -68,6 +98,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FFF5F5',
+  },
+  embeddedContainer: {
+    flex: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
   },
   badge: {
     backgroundColor: colors.danger,
@@ -93,10 +128,32 @@ const styles = StyleSheet.create({
   actionArea: {
     width: '100%',
   },
+  confirmButton: {
+    minHeight: 76,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    backgroundColor: colors.danger,
+    elevation: 4,
+  },
+  confirmButtonDone: {
+    backgroundColor: colors.success,
+  },
+  confirmButtonPressed: {
+    opacity: 0.82,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
+  },
   successText: {
     marginTop: spacing.md,
     textAlign: 'center',
-    color: 'green',
-    fontWeight: 'bold',
+    color: colors.success,
+    fontWeight: typography.weights.bold,
+    fontSize: typography.sizes.md,
   },
 });

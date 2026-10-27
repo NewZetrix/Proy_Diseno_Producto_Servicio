@@ -4,12 +4,14 @@ import com.safeschool.backend.dto.ActivarEmergenciaRequest;
 import com.safeschool.backend.dto.EmergenciaResponse;
 import com.safeschool.backend.dto.ResumenSalonesResponse;
 import com.safeschool.backend.dto.SalonEstadoDto;
+import com.safeschool.backend.exception.AccesoNoAutorizadoException;
 import com.safeschool.backend.exception.ConflictoException;
 import com.safeschool.backend.exception.RecursoNoEncontradoException;
 import com.safeschool.backend.model.*;
 import com.safeschool.backend.repository.ConfirmacionSalonRepository;
 import com.safeschool.backend.repository.EmergenciaRepository;
 import com.safeschool.backend.repository.SalonRepository;
+import com.safeschool.backend.repository.UsuarioRepository;
 import com.safeschool.backend.security.UsuarioAutenticado;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,34 +25,46 @@ public class EmergenciaService {
     private final EmergenciaRepository emergenciaRepository;
     private final SalonRepository salonRepository;
     private final ConfirmacionSalonRepository confirmacionSalonRepository;
+    private final UsuarioRepository usuarioRepository;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
                              SalonRepository salonRepository,
-                             ConfirmacionSalonRepository confirmacionSalonRepository) {
+                             ConfirmacionSalonRepository confirmacionSalonRepository,
+                             UsuarioRepository usuarioRepository) {
         this.emergenciaRepository = emergenciaRepository;
         this.salonRepository = salonRepository;
         this.confirmacionSalonRepository = confirmacionSalonRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Transactional
-    public EmergenciaResponse activarEmergencia(ActivarEmergenciaRequest request) {
-        boolean existeActiva = emergenciaRepository.existsByEstado(EstadoEmergencia.ACTIVA);
-        if (existeActiva) {
-            throw new ConflictoException("Ya existe una emergencia activa en el sistema.");
+    public EmergenciaResponse activarEmergencia(ActivarEmergenciaRequest request, UsuarioAutenticado usuarioAuth) {
+        if (usuarioAuth.rol() != Rol.DIRECTOR && usuarioAuth.rol() != Rol.DOCENTE) {
+            throw new AccesoNoAutorizadoException("Solo un director o docente puede activar una emergencia.");
         }
 
         if (!"SISMO".equalsIgnoreCase(request.getTipo())) {
             throw new IllegalArgumentException("Tipo de emergencia no soportado para el PMV1.");
         }
 
+        Usuario usuario = usuarioRepository.findById(usuarioAuth.id())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        Colegio colegio = usuario.getColegio();
+
+        if (emergenciaRepository.existsByColegioIdAndEstado(colegio.getId(), EstadoEmergencia.ACTIVA)) {
+            throw new ConflictoException("Ya existe una emergencia activa en este colegio.");
+        }
+
         Emergencia emergencia = new Emergencia();
+        emergencia.setColegio(colegio);
+        emergencia.setActivadaPor(usuario);
         emergencia.setTipo(TipoEmergencia.SISMO);
         emergencia.setEstado(EstadoEmergencia.ACTIVA);
         emergencia.setActivadaEn(LocalDateTime.now());
 
         Emergencia savedEmergencia = emergenciaRepository.save(emergencia);
 
-        List<Salon> salones = salonRepository.findAll();
+        List<Salon> salones = salonRepository.findByColegioId(colegio.getId());
         for (Salon salon : salones) {
             ConfirmacionSalon confirmacion = new ConfirmacionSalon();
             confirmacion.setEmergencia(savedEmergencia);
@@ -62,14 +76,41 @@ public class EmergenciaService {
         return mapToResponse(savedEmergencia);
     }
 
-    public EmergenciaResponse obtenerEmergenciaActiva() {
-        Emergencia emergencia = emergenciaRepository.findByEstado(EstadoEmergencia.ACTIVA)
+    public EmergenciaResponse obtenerEmergenciaActiva(UsuarioAutenticado usuarioAuth) {
+        Usuario usuario = usuarioRepository.findById(usuarioAuth.id())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        Emergencia emergencia = emergenciaRepository.findByColegioIdAndEstado(
+                        usuario.getColegio().getId(), EstadoEmergencia.ACTIVA)
                 .orElseThrow(() -> new RecursoNoEncontradoException("No hay ninguna emergencia activa en este momento."));
         return mapToResponse(emergencia);
     }
 
+    @Transactional
+    public EmergenciaResponse finalizarEmergencia(Long emergenciaId, UsuarioAutenticado usuarioAuth) {
+        if (usuarioAuth.rol() != Rol.DIRECTOR) {
+            throw new AccesoNoAutorizadoException("Solo un director puede finalizar una emergencia.");
+        }
+
+        Usuario director = usuarioRepository.findById(usuarioAuth.id())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado"));
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+
+        if (!emergencia.getColegio().getId().equals(director.getColegio().getId())) {
+            throw new AccesoNoAutorizadoException("Solo puede finalizar emergencias de su colegio.");
+        }
+        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
+            throw new ConflictoException("La emergencia ya fue finalizada.");
+        }
+
+        emergencia.setEstado(EstadoEmergencia.FINALIZADA);
+        emergencia.setFinalizadaEn(LocalDateTime.now());
+        Emergencia emergenciaFinalizada = emergenciaRepository.save(emergencia);
+        return mapToResponse(emergenciaFinalizada);
+    }
+
     public ResumenSalonesResponse obtenerResumenSalones(Long emergenciaId, UsuarioAutenticado usuario) {
-        Emergencia emergencia = emergenciaRepository.findById(emergenciaId)
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
 
         List<ConfirmacionSalon> confirmaciones = confirmacionSalonRepository.findByEmergenciaId(emergenciaId);
@@ -94,6 +135,37 @@ public class EmergenciaService {
                 pendientes,
                 listaSalones
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<SalonEstadoDto> obtenerSalonesDocente(Long emergenciaId, UsuarioAutenticado usuarioAuth) {
+        if (usuarioAuth.rol() != Rol.DOCENTE) {
+            throw new AccesoNoAutorizadoException("Solo un docente puede consultar sus salones de emergencia.");
+        }
+
+        Emergencia emergencia = emergenciaRepository.findById(emergenciaId.intValue())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Emergencia no encontrada"));
+        if (emergencia.getEstado() != EstadoEmergencia.ACTIVA) {
+            throw new ConflictoException("La emergencia no está activa");
+        }
+
+        List<Salon> salones = salonRepository.findByDocenteId(usuarioAuth.id());
+        return salones.stream()
+                .filter(salon -> salon.getColegio().getId().equals(emergencia.getColegio().getId()))
+                .map(salon -> {
+                    ConfirmacionSalon confirmacion = confirmacionSalonRepository
+                            .findByEmergenciaIdAndSalonId(emergenciaId, salon.getId().longValue())
+                            .orElseThrow(() -> new RecursoNoEncontradoException(
+                                    "El salón no tiene confirmación en esta emergencia"));
+                    return new SalonEstadoDto(
+                            salon.getId().longValue(),
+                            salon.getNombre(),
+                            confirmacion.getEstado().name(),
+                            confirmacion.getConfirmadoEn(),
+                            salon.getDocente().getNombre()
+                    );
+                })
+                .toList();
     }
 
     private EmergenciaResponse mapToResponse(Emergencia emergencia) {
