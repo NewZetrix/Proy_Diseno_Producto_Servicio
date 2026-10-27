@@ -3,6 +3,7 @@ package com.safeschool.backend.service;
 import com.safeschool.backend.dto.ActivarEmergenciaRequest;
 import com.safeschool.backend.dto.EmergenciaResponse;
 import com.safeschool.backend.dto.SalonEstadoDto;
+import com.safeschool.backend.dto.ResumenSalonesResponse;
 import com.safeschool.backend.exception.RecursoNoEncontradoException;
 import com.safeschool.backend.exception.AccesoNoAutorizadoException;
 import com.safeschool.backend.exception.ConflictoException;
@@ -281,6 +282,64 @@ class EmergenciaServiceTest {
         verify(emergenciaRepository, never()).save(emergencia);
     }
 
+        @Test
+    void obtenerResumenSalonesDevuelveListaYConteosCorrectos() {
+        Colegio colegio = new Colegio();
+        colegio.setId(7);
+
+        Emergencia emergencia = new Emergencia();
+        emergencia.setId(42);
+        emergencia.setColegio(colegio);
+        emergencia.setTipo(TipoEmergencia.SISMO);
+        emergencia.setEstado(EstadoEmergencia.ACTIVA);
+
+        Usuario docente = new Usuario();
+        docente.setId(12);
+        docente.setNombre("Lucía Torres");
+
+        Salon salonUno = salon(1, colegio);
+        salonUno.setDocente(docente);
+        Salon salonDos = salon(2, colegio);
+        salonDos.setDocente(docente);
+
+        ConfirmacionSalon confPendiente = new ConfirmacionSalon();
+        confPendiente.setEmergencia(emergencia);
+        confPendiente.setSalon(salonUno);
+        confPendiente.setEstado(EstadoConfirmacion.PENDIENTE);
+
+        ConfirmacionSalon confASalvo = new ConfirmacionSalon();
+        confASalvo.setEmergencia(emergencia);
+        confASalvo.setSalon(salonDos);
+        confASalvo.setEstado(EstadoConfirmacion.A_SALVO);
+        confASalvo.setConfirmadoEn(java.time.LocalDateTime.of(2026, 10, 26, 10, 30));
+
+        when(emergenciaRepository.findById(42)).thenReturn(Optional.of(emergencia));
+        when(confirmacionSalonRepository.findByEmergenciaId(42L))
+                .thenReturn(List.of(confPendiente, confASalvo));
+
+        ResumenSalonesResponse resumen = emergenciaService.obtenerResumenSalones(
+                42L, new UsuarioAutenticado(1, "director@test.com", Rol.DIRECTOR));
+
+        assertEquals(42L, resumen.getEmergenciaId());
+        assertEquals(TipoEmergencia.SISMO, resumen.getTipoEmergencia());
+        assertEquals(2, resumen.getTotalSalones());
+        assertEquals(1, resumen.getSalonesConfirmados());
+        assertEquals(1, resumen.getSalonesPendientes());
+        assertEquals(2, resumen.getSalones().size());
+        assertEquals("PENDIENTE", resumen.getSalones().get(0).getEstado());
+        assertEquals("A_SALVO", resumen.getSalones().get(1).getEstado());
+        assertEquals("Lucía Torres", resumen.getSalones().get(0).getDocenteEncargado());
+    }
+
+    @Test
+    void obtenerResumenSalonesCuandoNoExisteLanzaRecursoNoEncontrado() {
+        when(emergenciaRepository.findById(99)).thenReturn(Optional.empty());
+
+        assertThrows(RecursoNoEncontradoException.class, () ->
+                emergenciaService.obtenerResumenSalones(
+                        99L, new UsuarioAutenticado(1, "director@test.com", Rol.DIRECTOR)));
+    }
+    
     private Salon salon(int id, Colegio colegio) {
         Salon salon = new Salon();
         salon.setId(id);
