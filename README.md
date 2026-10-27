@@ -33,6 +33,13 @@ docs/       Modelo de datos, pruebas, PDCA y evidencias
 4. Desde la carpeta `backend/`, ejecutar `.\mvnw spring-boot:run` (en Linux o Mac, `./mvnw spring-boot:run`).
 5. Probar en el navegador: http://localhost:8080/api/health
 
+### Notificaciones push (HU03)
+
+- Para una base existente, ejecutar `database/migrations/001_hu03_notificaciones.sql`. En una base nueva, `database/schema.sql` ya incluye las tablas y columnas de HU03.
+- Firebase Cloud Messaging está desactivado por defecto. Para habilitarlo, configurar `FIREBASE_ENABLED=true` y `FIREBASE_CREDENTIALS_PATH` con la ruta local al archivo de credenciales de una cuenta de servicio de Firebase. No subir ese archivo al repositorio.
+- El apoderado autenticado registra o actualiza su token con `POST /api/dispositivos` y el cuerpo `{"tokenFcm":"..."}`. `GET /api/notificaciones` devuelve sus notificaciones ordenadas de más reciente a más antigua.
+- La confirmación del salón se guarda antes de procesar los avisos; se crea una notificación por estudiante. El push se intenta dos veces y el estado queda como `ENVIADA` si al menos un dispositivo del apoderado lo recibe, o `FALLIDA` en caso contrario.
+
 ## Flujo de trabajo con Git
 
 - `main`: versión estable y demostrable.
