@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useSession } from '../context/SessionContext';
 import { mensajeDeError } from '../services/api';
@@ -12,17 +12,21 @@ type Notificacion = {
 };
 
 export function PadreNotificacionesScreen() {
-  const { session } = useSession();
+  const { token } = useSession();
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchNotificaciones = async () => {
-    if (!session?.token) return;
+  const fetchNotificaciones = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
     try {
       const response = await fetch('http://192.168.18.27:8080/api/notificaciones', {
         headers: {
-          'Authorization': `Bearer ${session.token}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -39,11 +43,11 @@ export function PadreNotificacionesScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
-    fetchNotificaciones();
-  }, []);
+    void fetchNotificaciones();
+  }, [fetchNotificaciones]);
 
   if (loading && notificaciones.length === 0) {
     return (
