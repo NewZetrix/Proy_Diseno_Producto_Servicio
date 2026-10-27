@@ -1,6 +1,7 @@
 package com.safeschool.backend.controller;
 
 import com.safeschool.backend.dto.DispositivoRequest;
+import com.safeschool.backend.dto.NotificacionResponse;
 import com.safeschool.backend.security.UsuarioAutenticado;
 import com.safeschool.backend.service.NotificacionService;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -31,7 +33,11 @@ public class NotificacionController {
 
     @GetMapping("/notificaciones")
     @PreAuthorize("hasRole('PADRE')")
-    public ResponseEntity<?> obtenerNotificaciones(@AuthenticationPrincipal UsuarioAutenticado usuario) {
-        return ResponseEntity.ok(notificacionService.obtenerNotificacionesPorPadre((long) usuario.id()));
+    public ResponseEntity<List<NotificacionResponse>> obtenerNotificaciones(
+            @AuthenticationPrincipal UsuarioAutenticado usuario
+    ) {
+        return ResponseEntity.ok(
+                notificacionService.obtenerNotificacionesPorPadre((long) usuario.id())
+        );
     }
 }

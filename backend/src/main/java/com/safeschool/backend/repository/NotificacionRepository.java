@@ -1,8 +1,11 @@
 package com.safeschool.backend.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.safeschool.backend.model.Notificacion;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface NotificacionRepository extends JpaRepository<Notificacion, Integer> {
-    
+import java.util.List;
+
+public interface NotificacionRepository extends JpaRepository<Notificacion, Long> {
+
+    List<Notificacion> findByUsuarioIdOrderByCreadoEnDesc(Integer usuarioId);
 }

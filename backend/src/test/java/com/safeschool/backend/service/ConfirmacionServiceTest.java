@@ -41,12 +41,20 @@ class ConfirmacionServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private NotificacionService notificacionService;   // ← NUEVO
+
     private ConfirmacionService confirmacionService;
 
     @BeforeEach
     void preparar() {
         confirmacionService = new ConfirmacionService(
-                emergenciaRepository, salonRepository, confirmacionSalonRepository, usuarioRepository);
+                emergenciaRepository,
+                salonRepository,
+                confirmacionSalonRepository,
+                usuarioRepository,
+                notificacionService          // ← NUEVO
+        );
     }
 
     @Test
@@ -75,6 +83,9 @@ class ConfirmacionServiceTest {
         assertEquals(1L, respuesta.getSalonesConfirmados());
         assertEquals(4L, respuesta.getTotalSalones());
         verify(confirmacionSalonRepository).save(confirmacion);
+
+        // HU03: se debe notificar a los padres
+        verify(notificacionService).notificarPadresPorSalon(salon, emergencia.getTipo());
     }
 
     @Test
@@ -88,6 +99,7 @@ class ConfirmacionServiceTest {
 
         verify(salonRepository, never()).findById(2);
         verify(confirmacionSalonRepository, never()).save(any(ConfirmacionSalon.class));
+        verify(notificacionService, never()).notificarPadresPorSalon(any(), any());
     }
 
     @Test
@@ -96,6 +108,7 @@ class ConfirmacionServiceTest {
                 1L, 2L, new UsuarioAutenticado(3, "director@test.com", Rol.DIRECTOR)));
 
         verify(emergenciaRepository, never()).findById(1);
+        verify(notificacionService, never()).notificarPadresPorSalon(any(), any());
     }
 
     @Test
@@ -110,6 +123,7 @@ class ConfirmacionServiceTest {
 
         verify(confirmacionSalonRepository, never()).findByEmergenciaIdAndSalonId(1L, 2L);
         verify(confirmacionSalonRepository, never()).save(any(ConfirmacionSalon.class));
+        verify(notificacionService, never()).notificarPadresPorSalon(any(), any());
     }
 
     @Test
@@ -137,6 +151,9 @@ class ConfirmacionServiceTest {
         assertEquals(docente, confirmacion.getConfirmadoPor());
         verify(confirmacionSalonRepository, never()).save(any(ConfirmacionSalon.class));
         verify(confirmacionSalonRepository).findByEmergenciaIdAndSalonId(1L, 2L);
+
+        // No debe volver a notificar
+        verify(notificacionService, never()).notificarPadresPorSalon(any(), any());
     }
 
     private Emergencia emergenciaActiva() {
@@ -146,6 +163,7 @@ class ConfirmacionServiceTest {
         emergencia.setId(1);
         emergencia.setColegio(colegio);
         emergencia.setEstado(EstadoEmergencia.ACTIVA);
+        emergencia.setTipo(TipoEmergencia.SISMO);   // ← necesario para la notificación
         return emergencia;
     }
 

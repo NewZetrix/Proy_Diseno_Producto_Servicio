@@ -19,15 +19,18 @@ public class ConfirmacionService {
     private final SalonRepository salonRepository;
     private final ConfirmacionSalonRepository confirmacionSalonRepository;
     private final UsuarioRepository usuarioRepository;
+    private final NotificacionService notificacionService;
 
     public ConfirmacionService(EmergenciaRepository emergenciaRepository,
                                SalonRepository salonRepository,
                                ConfirmacionSalonRepository confirmacionSalonRepository,
-                               UsuarioRepository usuarioRepository) {
+                               UsuarioRepository usuarioRepository,
+                               NotificacionService notificacionService) {
         this.emergenciaRepository = emergenciaRepository;
         this.salonRepository = salonRepository;
         this.confirmacionSalonRepository = confirmacionSalonRepository;
         this.usuarioRepository = usuarioRepository;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional
@@ -61,7 +64,10 @@ public class ConfirmacionService {
                 .findByEmergenciaIdAndSalonId(emergenciaId, salonId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("El salón no tiene confirmación en esta emergencia"));
 
-        if (confirmacion.getEstado() != EstadoConfirmacion.A_SALVO) {
+        // Solo notificamos la primera vez que se confirma
+        boolean esPrimeraConfirmacion = confirmacion.getEstado() != EstadoConfirmacion.A_SALVO;
+
+        if (esPrimeraConfirmacion) {
             Usuario docente = usuarioRepository.findById(docenteIdInt)
                     .orElseThrow(() -> new RecursoNoEncontradoException("Usuario docente no encontrado"));
 
@@ -69,6 +75,9 @@ public class ConfirmacionService {
             confirmacion.setConfirmadoEn(LocalDateTime.now());
             confirmacion.setConfirmadoPor(docente);
             confirmacionSalonRepository.save(confirmacion);
+
+            // HU03: notificar a los padres de los alumnos de este salón
+            notificacionService.notificarPadresPorSalon(salon, emergencia.getTipo());
         }
 
         long salonesConfirmados = confirmacionSalonRepository.countByEmergenciaIdAndEstado(emergenciaId, EstadoConfirmacion.A_SALVO);
