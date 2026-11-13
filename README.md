@@ -33,6 +33,20 @@ docs/       Modelo de datos, pruebas, PDCA y evidencias
 4. Desde la carpeta `backend/`, ejecutar `.\mvnw spring-boot:run` (en Linux o Mac, `./mvnw spring-boot:run`).
 5. Probar en el navegador: http://localhost:8080/api/health
 
+### Notificaciones (HU03)
+
+- Para una base existente, ejecutar `database/migrations/001_hu03_notificaciones.sql`. En una base nueva, `database/schema.sql` ya incluye las tablas y columnas de HU03.
+- `GET /api/notificaciones` devuelve las notificaciones del apoderado autenticado, ordenadas de más reciente a más antigua.
+- Al confirmar un salón, el backend guarda una notificación por estudiante asociado y la deja disponible en el historial.
+- La tabla `dispositivo` creada por una versión anterior no se usa. Se conserva en bases existentes para evitar borrar datos; no se crea en una base nueva.
+
+### Notificaciones móviles para apoderados (HU03)
+
+- La app consulta `GET /api/notificaciones` cada 10 segundos mientras el centro de alertas está abierto. Al detectar un aviso nuevo, muestra un diálogo dentro de SafeSchool.
+- Esta alternativa no usa notificaciones del sistema ni envía push remotos; no avisa cuando la pantalla de alertas no está abierta o la app está en segundo plano. Para la demo, mantén SafeSchool abierta en esa pantalla.
+- El proyecto usa Expo SDK 58 para ser compatible con Expo Go SDK 58. Desde `mobile/`, inicia Metro con `npx expo start -c` y abre el proyecto con Expo Go.
+- Para la demo: inicia sesión como apoderado en Expo Go, deja abierto el centro de alertas y confirma un salón desde la cuenta docente. El aviso aparecerá en el historial y como diálogo emergente dentro de la app.
+
 ## Flujo de trabajo con Git
 
 - `main`: versión estable y demostrable.

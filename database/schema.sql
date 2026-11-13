@@ -64,7 +64,12 @@ CREATE TABLE confirmacion_salon (
 CREATE TABLE notificacion (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   usuario_id BIGINT NOT NULL,
+  estudiante_id BIGINT NULL,
+  emergencia_id BIGINT NULL,
   mensaje VARCHAR(500) NOT NULL,
-  estado VARCHAR(50) NOT NULL DEFAULT 'ENVIADA',
-  FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+  estado VARCHAR(20) NOT NULL DEFAULT 'ENVIADA',
+  fecha_creacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+  FOREIGN KEY (estudiante_id) REFERENCES estudiante(id),
+  FOREIGN KEY (emergencia_id) REFERENCES emergencia(id)
 );

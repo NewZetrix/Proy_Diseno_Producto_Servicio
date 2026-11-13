@@ -1,6 +1,7 @@
 package com.safeschool.backend.service;
 
 import com.safeschool.backend.dto.ConfirmacionResponse;
+import com.safeschool.backend.event.SalonConfirmadoEvent;
 import com.safeschool.backend.exception.AccesoNoAutorizadoException;
 import com.safeschool.backend.exception.ConflictoException;
 import com.safeschool.backend.model.*;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -23,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,12 +44,15 @@ class ConfirmacionServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private ConfirmacionService confirmacionService;
 
     @BeforeEach
     void preparar() {
         confirmacionService = new ConfirmacionService(
-                emergenciaRepository, salonRepository, confirmacionSalonRepository, usuarioRepository);
+                emergenciaRepository, salonRepository, confirmacionSalonRepository, usuarioRepository, eventPublisher);
     }
 
     @Test
@@ -75,6 +81,7 @@ class ConfirmacionServiceTest {
         assertEquals(1L, respuesta.getSalonesConfirmados());
         assertEquals(4L, respuesta.getTotalSalones());
         verify(confirmacionSalonRepository).save(confirmacion);
+        verify(eventPublisher).publishEvent(new SalonConfirmadoEvent(1L, 2L));
     }
 
     @Test
@@ -88,6 +95,7 @@ class ConfirmacionServiceTest {
 
         verify(salonRepository, never()).findById(2);
         verify(confirmacionSalonRepository, never()).save(any(ConfirmacionSalon.class));
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -137,6 +145,7 @@ class ConfirmacionServiceTest {
         assertEquals(docente, confirmacion.getConfirmadoPor());
         verify(confirmacionSalonRepository, never()).save(any(ConfirmacionSalon.class));
         verify(confirmacionSalonRepository).findByEmergenciaIdAndSalonId(1L, 2L);
+        verifyNoInteractions(eventPublisher);
     }
 
     private Emergencia emergenciaActiva() {
