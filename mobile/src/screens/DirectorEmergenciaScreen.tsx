@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { PlanoColegio } from '../components/PlanoColegio';
 import { api, mensajeDeError } from '../services/api';
 import { finalizarEmergencia as finalizarEmergenciaApi } from '../services/emergencias';
 import { useSession } from '../context/SessionContext';
@@ -35,6 +36,7 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalized, setFinalized] = useState(false);
+  const [vista, setVista] = useState<'lista' | 'plano'>('lista');
 
   const fetchResumenSalones = useCallback(async () => {
     if (!token) {
@@ -117,6 +119,36 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
         </Text>
       </View>
 
+      <View style={styles.tabs} accessibilityRole="tablist">
+        {(['lista', 'plano'] as const).map(v => (
+          <Pressable
+            key={v}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: vista === v }}
+            onPress={() => setVista(v)}
+            style={[styles.tab, vista === v && styles.tabActive]}
+          >
+            <Text style={[styles.tabText, vista === v && styles.tabTextActive]}>
+              {v === 'lista' ? 'Lista' : 'Plano'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {vista === 'plano' ? (
+        <ScrollView
+          style={styles.planoScroll}
+          refreshControl={<RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void fetchResumenSalones();
+            }}
+          />}
+        >
+          <PlanoColegio salones={resumen?.salones ?? []} />
+        </ScrollView>
+      ) : (
       <FlatList
         data={resumen?.salones}
         keyExtractor={(item) => item.salonId.toString()}
@@ -144,6 +176,7 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
           );
         }}
       />
+      )}
       <PrimaryButton
         title="FINALIZAR EMERGENCIA"
         onPress={solicitarFinalizacion}
@@ -231,6 +264,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: typography.sizes.xs,
   },
+  tabs: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  tab: {
+    flex: 1,
+    minHeight: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+  },
+  tabActive: { backgroundColor: colors.primary },
+  tabText: { color: colors.primary, fontWeight: 'bold', fontSize: typography.sizes.md },
+  tabTextActive: { color: '#FFFFFF' },
+  planoScroll: { flex: 1 },
   finalizeButton: {
     marginTop: spacing.sm,
     minHeight: 60,
