@@ -54,11 +54,15 @@ export function DocenteEmergenciaScreen({
 
   return (
     <View style={[styles.container, embedded && styles.embeddedContainer]}>
-      <Text style={styles.badge}>EMERGENCIA ACTIVA</Text>
-      <Text style={styles.salonText}>Salón: {nombreSalon}</Text>
-      <Text style={styles.instruction}>
-        Siga las rutas de evacuación. Una vez que todos sus alumnos estén en la zona segura, presione el botón.
+      {!embedded && <Text style={styles.badge}>EMERGENCIA ACTIVA</Text>}
+      <Text style={[styles.salonText, embedded && styles.salonTextEmbedded]}>
+        Salón: {nombreSalon}
       </Text>
+      {!embedded && (
+        <Text style={styles.instruction}>
+          Siga las rutas de evacuación. Una vez que todos sus alumnos estén en la zona segura, presione el botón.
+        </Text>
+      )}
 
       <View style={styles.actionArea}>
         <Pressable
@@ -119,6 +123,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     marginBottom: spacing.sm,
   },
+  salonTextEmbedded: {
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
   instruction: {
     fontSize: typography.sizes.md,
     textAlign: 'center',
@@ -129,7 +137,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   confirmButton: {
-    minHeight: 76,
+    minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,

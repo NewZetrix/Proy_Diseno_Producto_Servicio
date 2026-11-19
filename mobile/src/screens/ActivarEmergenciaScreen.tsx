@@ -8,16 +8,40 @@ import { mensajeDeError } from '../services/api';
 import { obtenerSalonesDocente } from '../services/emergencias';
 import type { SalonDocenteResponse } from '../services/emergencias';
 import { DocenteEmergenciaScreen } from './DocenteEmergenciaScreen';
+import { PrimaryButton } from '../components/PrimaryButton';
+import { useLecturaEnVoz } from '../hooks/useLecturaEnVoz';
+import {
+  instruccionesLocales,
+  normalizarPasos,
+  obtenerInstruccionesProtocolo,
+} from '../services/protocolo';
+import type { PasoProtocolo } from '../services/protocolo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActivarEmergencia'>;
-
-const instructionIcons = ['●', '◆', '➜'];
 
 export function ActivarEmergenciaScreen({ route }: Props) {
   const { emergencia } = route.params;
   const { rol, token } = useSession();
   const [salones, setSalones] = useState<SalonDocenteResponse[]>([]);
   const [loadingSalones, setLoadingSalones] = useState(false);
+  const { leyendo, error: errorVoz, alternar } = useLecturaEnVoz();
+  const [pasos, setPasos] = useState<PasoProtocolo[]>(() => {
+    const iniciales = normalizarPasos(emergencia.instrucciones);
+    return iniciales.length > 0 ? iniciales : instruccionesLocales(emergencia.tipo);
+  });
+
+  // Refresca los pasos desde el backend; si falla, se mantienen los actuales.
+  useEffect(() => {
+    let mounted = true;
+    obtenerInstruccionesProtocolo(emergencia.tipo, token).then(datos => {
+      if (mounted && datos.length > 0) {
+        setPasos(datos);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [emergencia.tipo, token]);
 
   useEffect(() => {
     if (rol !== 'DOCENTE' || !token) {
@@ -49,52 +73,74 @@ export function ActivarEmergenciaScreen({ route }: Props) {
   }, [emergencia.id, rol, token]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusText}>EMERGENCIA ACTIVA</Text>
-      </View>
-      <Text style={styles.title}>Protocolo activo</Text>
-      <Text style={styles.subtitle}>
-        {emergencia.tipo} · Sigue estas instrucciones:
-      </Text>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>EMERGENCIA ACTIVA</Text>
+        </View>
+        <Text style={styles.title}>Protocolo activo</Text>
+        <Text style={styles.subtitle}>
+          {emergencia.tipo} · Sigue estas instrucciones:
+        </Text>
 
-      <View style={styles.instructions}>
-        {emergencia.instrucciones.map((instruccion, index) => (
-          <View key={`${emergencia.id}-${index}`} style={styles.instructionRow}>
-            <Text style={styles.instructionIcon}>
-              {instructionIcons[index % instructionIcons.length]}
-            </Text>
-            <Text style={styles.instructionText}>{instruccion}</Text>
-          </View>
-        ))}
-      </View>
+        <PrimaryButton
+          title={leyendo ? '■  Detener lectura' : '🔊  Escuchar instrucciones'}
+          variant={leyendo ? 'danger' : 'secondary'}
+          onPress={() => alternar(pasos.map(p => p.descripcion))}
+          style={styles.voiceButton}
+        />
+        {errorVoz && (
+          <Text style={styles.voiceError}>
+            No se pudo reproducir la voz en este dispositivo. Lee los pasos en pantalla.
+          </Text>
+        )}
+
+        <View style={styles.instructions}>
+          {pasos.map(item => (
+            <View key={`${emergencia.id}-${item.paso}`} style={styles.instructionRow}>
+              <Text style={styles.instructionNumber}>{item.paso}</Text>
+              <Text style={styles.instructionText}>{item.descripcion}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
       {rol === 'DOCENTE' && (
-        <View style={styles.teacherSection}>
-          {loadingSalones ? (
-            <ActivityIndicator size="large" color={colors.primary} />
-          ) : salones.length > 0 ? (
-            salones.map(salon => (
-              <DocenteEmergenciaScreen
-                key={`${emergencia.id}-${salon.salonId}`}
-                emergenciaId={emergencia.id}
-                salonId={salon.salonId}
-                nombreSalon={salon.nombreSalon}
-                estadoInicial={salon.estado}
-                embedded
-              />
-            ))
-          ) : (
-            <Text style={styles.noSalonText}>
-              No hay salones asignados a tu usuario en esta emergencia.
-            </Text>
-          )}
+        <View style={styles.teacherFooter}>
+          <ScrollView
+            style={styles.teacherScroll}
+            contentContainerStyle={styles.teacherSection}
+          >
+            {loadingSalones ? (
+              <ActivityIndicator size="large" color={colors.primary} />
+            ) : salones.length > 0 ? (
+              salones.map(salon => (
+                <DocenteEmergenciaScreen
+                  key={`${emergencia.id}-${salon.salonId}`}
+                  emergenciaId={emergencia.id}
+                  salonId={salon.salonId}
+                  nombreSalon={salon.nombreSalon}
+                  estadoInicial={salon.estado}
+                  embedded
+                />
+              ))
+            ) : (
+              <Text style={styles.noSalonText}>
+                No hay salones asignados a tu usuario en esta emergencia.
+              </Text>
+            )}
+          </ScrollView>
         </View>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#FFF5F5',
+  },
   container: {
     flexGrow: 1,
     padding: spacing.lg,
@@ -125,13 +171,32 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: '#666',
     textAlign: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  voiceButton: {
+    height: 60,
+    marginBottom: spacing.md,
+  },
+  voiceError: {
+    color: colors.danger,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
+    marginBottom: spacing.md,
   },
   instructions: {
     gap: spacing.md,
   },
+  teacherFooter: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 2,
+    borderTopColor: colors.danger,
+    padding: spacing.md,
+    elevation: 8,
+  },
+  teacherScroll: {
+    maxHeight: 280,
+  },
   teacherSection: {
-    marginTop: spacing.xl,
     gap: spacing.md,
   },
   noSalonText: {
@@ -146,12 +211,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.md,
   },
-  instructionIcon: {
+  instructionNumber: {
     width: 40,
     height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
     textAlign: 'center',
     textAlignVertical: 'center',
-    color: colors.danger,
+    lineHeight: 40,
+    backgroundColor: colors.danger,
+    color: colors.surface,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     marginRight: spacing.md,
@@ -159,7 +228,7 @@ const styles = StyleSheet.create({
   instructionText: {
     flex: 1,
     color: colors.text,
-    fontSize: typography.sizes.md,
-    lineHeight: 24,
+    fontSize: typography.sizes.lg,
+    lineHeight: 28,
   },
 });
