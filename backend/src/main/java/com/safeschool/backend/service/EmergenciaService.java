@@ -26,15 +26,18 @@ public class EmergenciaService {
     private final SalonRepository salonRepository;
     private final ConfirmacionSalonRepository confirmacionSalonRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ProtocoloInstruccionesService protocoloInstruccionesService;
 
     public EmergenciaService(EmergenciaRepository emergenciaRepository,
                              SalonRepository salonRepository,
                              ConfirmacionSalonRepository confirmacionSalonRepository,
-                             UsuarioRepository usuarioRepository) {
+                             UsuarioRepository usuarioRepository,
+                             ProtocoloInstruccionesService protocoloInstruccionesService) {
         this.emergenciaRepository = emergenciaRepository;
         this.salonRepository = salonRepository;
         this.confirmacionSalonRepository = confirmacionSalonRepository;
         this.usuarioRepository = usuarioRepository;
+        this.protocoloInstruccionesService = protocoloInstruccionesService;
     }
 
     @Transactional
@@ -174,7 +177,7 @@ public class EmergenciaService {
             emergencia.getTipo(),
             emergencia.getEstado(),
             emergencia.getActivadaEn(),
-            List.of("Conserve la calma", "Ubíquese en las zonas seguras", "Siga las instrucciones del brigadista")
+            protocoloInstruccionesService.obtenerPorTipo(emergencia.getTipo())
         );
     }
 }

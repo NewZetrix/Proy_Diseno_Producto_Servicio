@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class EmergenciaServiceTest {
@@ -46,12 +47,21 @@ class EmergenciaServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private ProtocoloInstruccionesService protocoloInstruccionesService;
+
     private EmergenciaService emergenciaService;
 
     @BeforeEach
     void preparar() {
         emergenciaService = new EmergenciaService(
-                emergenciaRepository, salonRepository, confirmacionSalonRepository, usuarioRepository);
+                emergenciaRepository, 
+                salonRepository, 
+                confirmacionSalonRepository, 
+                usuarioRepository, 
+                protocoloInstruccionesService);
+        lenient().when(protocoloInstruccionesService.obtenerPorTipo(any()))
+            .thenReturn(List.of("Paso de prueba"));
     }
 
     @Test
