@@ -1,0 +1,52 @@
+rivate readonly List<string> _rolesPermitidos = new() { "Director", "Docente" };
+
+public async Task<bool> EnviarMensajeAsync(
+    string texto, 
+    usuarioActual, 
+    Emergencia emergenciaActual)
+{
+    // 1. Validar emergencia activa
+    if (emergenciaActual == null || !emergenciaActual.EstaActiva)
+        throw new Invalidoperation("El chat solo está disponible durante una emergencia activa.");
+
+    // 2. Validar pertenencia al mismo colegio
+    if (UsuarioActual.ColegioId != EmergenciaActualColegio)
+        throw new UnauthorizedAccessException("No perteneces al colegio de esta emergencia.");
+
+    // 3. Validar rol (solo Director o Docente)
+    if (!_rolesPermitidos.Contains(usuarioActual.Rol))
+        throw new UnauthorizedAccessException("Tu rol no tiene acceso al chat operativo.");
+
+    // 4. Validar mensaje corto y sin multimedia (solo texto plano)
+    if (string.IsNullOrWhiteSpace(texto) || texto.Length > 250)
+        throw new ArgumentException("El mensaje debe tener entre 1 y 250 caracteres.");
+
+    var nuevoMensaje = new ChatMensaje
+    {
+        Id = Guid.NewGuid().ToString(),
+
+        ColegioId = usuarioActual.ColegioId,
+
+        EmergenciaId = emergenciaActual.Id,
+
+        UsuarioId = usuario Actual.Id,
+
+        Nombreremitente = usuario Actual .Nombre,
+
+        Rolremitente = usuarioActual.Rol,
+
+        Texto = texto.Trim(),
+
+        FechaEnvio = DateTime.UtcNow
+    };
+
+    // Guardar en backend / Firestore / SignalR / API REST
+    await GuardarEnRepositorioAsync(nuevoMensaje);
+    return true;
+}
+
+public async Task<List<ChatMensaje>> ObtenerMensajesAsync(string colegioId, string emergenciaId)
+{
+    // Filtrar estrictamente por ColegioId y EmergenciaId actual
+    return await ConsultarRepositorioAsync(colegioId, emergenciaId);
+}
