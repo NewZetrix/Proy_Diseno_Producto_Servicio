@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 public class ActivarEmergenciaRequest {
 
     @NotBlank(message = "El tipo de emergencia es obligatorio")
-    @Pattern(regexp = "(?i)^SISMO$", message = "El tipo de emergencia no está soportado para el PMV1")
+    @Pattern(regexp = "(?i)^(SISMO|INCENDIO|INTRUSO)$", message = "Tipo de emergencia no válido")
     private String tipo;
 
     public String getTipo() {

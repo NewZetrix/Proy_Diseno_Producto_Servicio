@@ -20,6 +20,10 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   async function onSubmit() {
+    if (!correo.trim() || !password) {
+      setError('Correo y contraseña son obligatorios');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {

@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, Vibration } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -12,12 +12,20 @@ import type { RootStackParamList } from '../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
+type TipoEmergenciaUi = 'SISMO' | 'INCENDIO' | 'INTRUSO';
+
+const TIPOS: { id: TipoEmergenciaUi; label: string }[] = [
+  { id: 'SISMO', label: 'Sismo' },
+  { id: 'INCENDIO', label: 'Incendio' },
+  { id: 'INTRUSO', label: 'Intruso' },
+];
+
 export function HomeScreen({ navigation }: Props) {
   const { nombre, rol, token, clearSession } = useSession();
   const [emergenciaActiva, setEmergenciaActiva] = useState<EmergenciaResponse | null>(null);
   const [checkingEmergency, setCheckingEmergency] = useState(true);
   const [activating, setActivating] = useState(false);
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<'SISMO'>('SISMO');
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<TipoEmergenciaUi>('SISMO');
 
   useFocusEffect(
     useCallback(() => {
@@ -57,7 +65,7 @@ export function HomeScreen({ navigation }: Props) {
   function solicitarConfirmacion() {
     Alert.alert(
       'Confirmar emergencia',
-      '¿Deseas activar el protocolo de sismo en tu colegio?',
+      `¿Deseas activar el protocolo de ${tipoSeleccionado} en tu colegio?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Confirmar', style: 'destructive', onPress: confirmarActivacion },
@@ -73,6 +81,12 @@ export function HomeScreen({ navigation }: Props) {
 
     if (activating) {
       return;
+    }
+
+    try {
+      Vibration.vibrate(40);
+    } catch {
+      // sin vibración en este dispositivo
     }
 
     setActivating(true);
@@ -102,16 +116,20 @@ export function HomeScreen({ navigation }: Props) {
           {emergenciaActiva && rol === 'DIRECTOR' ? (
             <PrimaryButton
               title="MONITOREAR EMERGENCIA ACTIVA"
-              onPress={() => navigation.navigate('DirectorEmergencia', {
-                emergenciaId: emergenciaActiva.id,
-              })}
+              onPress={() =>
+                navigation.navigate('DirectorEmergencia', {
+                  emergenciaId: emergenciaActiva.id,
+                })
+              }
               variant="danger"
               style={styles.emergencyButton}
             />
           ) : emergenciaActiva && rol === 'DOCENTE' ? (
             <PrimaryButton
               title="ABRIR EMERGENCIA ACTIVA"
-              onPress={() => navigation.navigate('ActivarEmergencia', { emergencia: emergenciaActiva })}
+              onPress={() =>
+                navigation.navigate('ActivarEmergencia', { emergencia: emergenciaActiva })
+              }
               variant="danger"
               style={styles.emergencyButton}
             />
@@ -120,21 +138,26 @@ export function HomeScreen({ navigation }: Props) {
           ) : (
             <>
               <Text style={styles.sectionTitle}>Tipo de emergencia</Text>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: tipoSeleccionado === 'SISMO' }}
-                accessibilityLabel="Sismo"
-                onPress={() => setTipoSeleccionado('SISMO')}
-                disabled={activating}
-                style={({ pressed }) => [
-                  styles.typeOption,
-                  pressed && styles.typeOptionPressed,
-                ]}
-              >
-                <Text style={styles.radio}>{tipoSeleccionado === 'SISMO' ? '●' : '○'}</Text>
-                <Text style={styles.typeName}>Sismo</Text>
-                <Text style={styles.typeTag}>PMV 1</Text>
-              </Pressable>
+              {TIPOS.map(opcion => (
+                <Pressable
+                  key={opcion.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: tipoSeleccionado === opcion.id }}
+                  accessibilityLabel={opcion.label}
+                  onPress={() => setTipoSeleccionado(opcion.id)}
+                  disabled={activating}
+                  style={({ pressed }) => [
+                    styles.typeOption,
+                    tipoSeleccionado === opcion.id && styles.typeOptionActive,
+                    pressed && styles.typeOptionPressed,
+                  ]}
+                >
+                  <Text style={styles.radio}>
+                    {tipoSeleccionado === opcion.id ? '●' : '○'}
+                  </Text>
+                  <Text style={styles.typeName}>{opcion.label}</Text>
+                </Pressable>
+              ))}
 
               <PrimaryButton
                 title="🚨  ACTIVAR EMERGENCIA"
@@ -151,11 +174,7 @@ export function HomeScreen({ navigation }: Props) {
         </View>
       )}
 
-      <PrimaryButton
-        title="Cerrar sesión"
-        variant="danger"
-        onPress={() => clearSession()}
-      />
+      <PrimaryButton title="Cerrar sesión" variant="danger" onPress={() => clearSession()} />
     </View>
   );
 }
@@ -196,7 +215,11 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     backgroundColor: colors.surface,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  typeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: '#EAF2F8',
   },
   typeOptionPressed: {
     opacity: 0.8,
@@ -212,12 +235,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
   },
-  typeTag: {
-    color: colors.textMuted,
-    fontSize: typography.sizes.sm,
-  },
   emergencyButton: {
     height: 76,
+    marginTop: spacing.sm,
   },
   safetyNote: {
     marginTop: spacing.sm,
