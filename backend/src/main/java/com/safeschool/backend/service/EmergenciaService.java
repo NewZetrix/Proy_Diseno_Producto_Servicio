@@ -42,12 +42,11 @@ public class EmergenciaService {
 
     @Transactional
     public EmergenciaResponse activarEmergencia(ActivarEmergenciaRequest request, UsuarioAutenticado usuarioAuth) {
-        if (usuarioAuth.rol() != Rol.DIRECTOR && usuarioAuth.rol() != Rol.DOCENTE) {
-            throw new AccesoNoAutorizadoException("Solo un director o docente puede activar una emergencia.");
-        }
-
-        if (!"SISMO".equalsIgnoreCase(request.getTipo())) {
-            throw new IllegalArgumentException("Tipo de emergencia no soportado para el PMV1.");
+        TipoEmergencia tipo;
+        try {
+            tipo = TipoEmergencia.valueOf(request.getTipo().trim().toUpperCase());
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Tipo de emergencia no válido. Use SISMO, INCENDIO o INTRUSO.");
         }
 
         Usuario usuario = usuarioRepository.findById(usuarioAuth.id())
@@ -61,7 +60,7 @@ public class EmergenciaService {
         Emergencia emergencia = new Emergencia();
         emergencia.setColegio(colegio);
         emergencia.setActivadaPor(usuario);
-        emergencia.setTipo(TipoEmergencia.SISMO);
+        emergencia.setTipo(tipo);
         emergencia.setEstado(EstadoEmergencia.ACTIVA);
         emergencia.setActivadaEn(LocalDateTime.now());
 

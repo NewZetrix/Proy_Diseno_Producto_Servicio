@@ -37,6 +37,7 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
   const [finalizing, setFinalizing] = useState(false);
   const [finalized, setFinalized] = useState(false);
   const [vista, setVista] = useState<'lista' | 'plano'>('lista');
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const fetchResumenSalones = useCallback(async () => {
     if (!token) {
@@ -50,8 +51,9 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
         { token }
       );
       setResumen(data);
+      setErrorBanner(null);
     } catch (error) {
-      Alert.alert('Error', mensajeDeError(error));
+      setErrorBanner(mensajeDeError(error));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -112,6 +114,9 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      {errorBanner ? (
+        <Text style={{ color: colors.danger, marginBottom: 8 }}>{errorBanner}</Text>
+      ) : null}
       <View style={styles.headerCard}>
         <Text style={styles.badge}>MONITOREO EN VIVO</Text>
         <Text style={styles.title}>Emergencia: {resumen?.tipoEmergencia}</Text>
