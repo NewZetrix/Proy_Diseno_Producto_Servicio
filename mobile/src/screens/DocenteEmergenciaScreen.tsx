@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, Vibration } from 'react-native';
 import { confirmarSalonASalvo } from '../services/emergencias';
 import { mensajeDeError } from '../services/api';
 import { useSession } from '../context/SessionContext';
@@ -44,6 +44,11 @@ export function DocenteEmergenciaScreen({
         throw new Error('El servidor no confirmó el estado A SALVO.');
       }
       setEstado('A_SALVO');
+      try {
+        Vibration.vibrate(40);
+      } catch {
+        // Sin vibración en este dispositivo
+      }
     } catch (error) {
       Alert.alert('Error', mensajeDeError(error));
     } finally {
