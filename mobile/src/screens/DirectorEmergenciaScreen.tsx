@@ -168,13 +168,13 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
         renderItem={({ item }) => {
           const isA_Salvo = item.estado === 'A_SALVO';
           return (
-            <View style={[styles.salonCard, { borderLeftColor: isA_Salvo ? '#2e7d32' : '#f57c00' }]}>
+            <View style={[styles.salonCard, { borderLeftColor: isA_Salvo ? '#2e7d32' : colors.warning }]}>
               <View style={styles.salonInfo}>
                 <Text style={styles.salonName}>{item.nombreSalon}</Text>
                 <Text style={styles.docenteText}>Docente: {item.docenteEncargado}</Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: isA_Salvo ? '#e8f5e9' : '#fff3e0' }]}>
-                <Text style={[styles.statusText, { color: isA_Salvo ? '#2e7d32' : '#f57c00' }]}>
+                <Text style={[styles.statusText, { color: isA_Salvo ? '#2e7d32' : colors.warning }]}>
                   {isA_Salvo ? 'A SALVO' : 'PENDIENTE'}
                 </Text>
               </View>
