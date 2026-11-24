@@ -27,7 +27,10 @@ export interface SalonDocenteResponse {
 }
 
 // HU01: Activar Emergencia
-export const activarEmergencia = async (token: string, tipo: string = 'SISMO'): Promise<EmergenciaResponse> => {
+export const activarEmergencia = async (
+  token: string,
+  tipo: string = 'SISMO'
+): Promise<EmergenciaResponse> => {
   return api<EmergenciaResponse>('/api/emergencias', {
     method: 'POST',
     body: { tipo },
@@ -36,7 +39,9 @@ export const activarEmergencia = async (token: string, tipo: string = 'SISMO'): 
 };
 
 // HU01: Obtener Emergencia Activa
-export const obtenerEmergenciaActiva = async (token: string): Promise<EmergenciaResponse> => {
+export const obtenerEmergenciaActiva = async (
+  token: string
+): Promise<EmergenciaResponse> => {
   return api<EmergenciaResponse>('/api/emergencias/activa', {
     method: 'GET',
     token,
@@ -47,20 +52,26 @@ export const obtenerSalonesDocente = async (
   token: string,
   emergenciaId: number
 ): Promise<SalonDocenteResponse[]> => {
-  return api<SalonDocenteResponse[]>(`/api/emergencias/${emergenciaId}/mis-salones`, {
-    method: 'GET',
-    token,
-  });
+  return api<SalonDocenteResponse[]>(
+    `/api/emergencias/${emergenciaId}/mis-salones`,
+    {
+      method: 'GET',
+      token,
+    }
+  );
 };
 
 export const finalizarEmergencia = async (
   token: string,
   emergenciaId: number
 ): Promise<EmergenciaResponse> => {
-  return api<EmergenciaResponse>(`/api/emergencias/${emergenciaId}/finalizar`, {
-    method: 'PUT',
-    token,
-  });
+  return api<EmergenciaResponse>(
+    `/api/emergencias/${emergenciaId}/finalizar`,
+    {
+      method: 'PUT',
+      token,
+    }
+  );
 };
 
 // HU02: Confirmar Salón a Salvo
@@ -69,8 +80,11 @@ export const confirmarSalonASalvo = async (
   emergenciaId: number,
   salonId: number
 ): Promise<ConfirmacionResponse> => {
-  return api<ConfirmacionResponse>(`/api/emergencias/${emergenciaId}/salones/${salonId}/confirmacion`, {
-    method: 'PUT',
-    token,
-  });
+  return api<ConfirmacionResponse>(
+    `/api/emergencias/${emergenciaId}/salones/${salonId}/confirmacion`,
+    {
+      method: 'PUT',
+      token,
+    }
+  );
 };

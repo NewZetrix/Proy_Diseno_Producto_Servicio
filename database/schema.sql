@@ -73,3 +73,14 @@ CREATE TABLE notificacion (
   FOREIGN KEY (estudiante_id) REFERENCES estudiante(id),
   FOREIGN KEY (emergencia_id) REFERENCES emergencia(id)
 );
+
+CREATE TABLE IF NOT EXISTS mensaje_chat (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  emergencia_id BIGINT NOT NULL,
+  usuario_id BIGINT NOT NULL,
+  texto VARCHAR(250) NOT NULL,
+  enviado_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (emergencia_id) REFERENCES emergencia(id),
+  FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+  INDEX idx_mensaje_chat_emergencia (emergencia_id, enviado_en)
+);

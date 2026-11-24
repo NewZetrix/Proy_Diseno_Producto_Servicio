@@ -45,9 +45,10 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
       return;
     }
     try {
-      const data = await api<ResumenSalones>(`/api/emergencias/${emergenciaId}/salones`, {
-        token,
-      });
+      const data = await api<ResumenSalones>(
+        `/api/emergencias/${emergenciaId}/salones`,
+        { token }
+      );
       setResumen(data);
     } catch (error) {
       Alert.alert('Error', mensajeDeError(error));
@@ -177,6 +178,11 @@ export function DirectorEmergenciaScreen({ route, navigation }: Props) {
         }}
       />
       )}
+      <PrimaryButton
+        title="CHAT OPERATIVO"
+        onPress={() => navigation.navigate('ChatOperativo', { emergenciaId })}
+        style={{ marginBottom: 8 }}
+      />
       <PrimaryButton
         title="FINALIZAR EMERGENCIA"
         onPress={solicitarFinalizacion}
