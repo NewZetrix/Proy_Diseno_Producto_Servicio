@@ -55,4 +55,9 @@ public class GlobalExceptionHandler {
         ApiError cuerpo = new ApiError(estado.value(), estado.getReasonPhrase(), mensaje, LocalDateTime.now());
         return ResponseEntity.status(estado).body(cuerpo);
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> argumentoInvalido(IllegalArgumentException ex) {
+        return construir(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
 }

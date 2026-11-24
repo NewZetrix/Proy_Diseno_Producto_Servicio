@@ -19,7 +19,7 @@ import type { PasoProtocolo } from '../services/protocolo';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActivarEmergencia'>;
 
-export function ActivarEmergenciaScreen({ route }: Props) {
+export function ActivarEmergenciaScreen({ route, navigation }: Props) {
   const { emergencia } = route.params;
   const { rol, token } = useSession();
   const [salones, setSalones] = useState<SalonDocenteResponse[]>([]);
@@ -89,6 +89,14 @@ export function ActivarEmergenciaScreen({ route }: Props) {
           onPress={() => alternar(pasos.map(p => p.descripcion))}
           style={styles.voiceButton}
         />
+                <PrimaryButton
+          title="Chat operativo"
+          variant="secondary"
+          onPress={() =>
+            navigation.navigate('ChatOperativo', { emergenciaId: emergencia.id })
+          }
+          style={styles.voiceButton}
+        />
         {errorVoz && (
           <Text style={styles.voiceError}>
             No se pudo reproducir la voz en este dispositivo. Lee los pasos en pantalla.
@@ -97,7 +105,7 @@ export function ActivarEmergenciaScreen({ route }: Props) {
 
         <View style={styles.instructions}>
           {pasos.map(item => (
-            <View key={`${emergencia.id}-${item.paso}`} style={styles.instructionRow}>
+              <View key={`${emergencia.id}-${item.paso}`} style={styles.instructionRow}>
               <Text style={styles.instructionNumber}>{item.paso}</Text>
               <Text style={styles.instructionText}>{item.descripcion}</Text>
             </View>

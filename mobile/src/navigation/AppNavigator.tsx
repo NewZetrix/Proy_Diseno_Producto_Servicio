@@ -8,6 +8,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { NotificacionesScreen } from '../screens/NotificacionesScreen';
 import { ActivarEmergenciaScreen } from '../screens/ActivarEmergenciaScreen';
 import { DirectorEmergenciaScreen } from '../screens/DirectorEmergenciaScreen';
+import { ChatOperativoScreen } from '../screens/ChatOperativoScreen';
 import { colors } from '../constants/theme';
 import type { EmergenciaResponse } from '../services/emergencias';
 
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   Notificaciones: undefined;
   ActivarEmergencia: { emergencia: EmergenciaResponse };
   DirectorEmergencia: { emergenciaId: number };
+  ChatOperativo: { emergenciaId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -102,6 +104,11 @@ export function AppNavigator() {
                 options={{ title: 'Monitoreo de emergencia' }}
               />
             )}
+            <Stack.Screen
+              name="ChatOperativo"
+              component={ChatOperativoScreen}
+              options={{ title: 'Chat operativo' }}
+            />
           </Stack.Group>
         )}
       </Stack.Navigator>
