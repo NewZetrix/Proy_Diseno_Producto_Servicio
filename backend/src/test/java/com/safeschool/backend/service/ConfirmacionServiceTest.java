@@ -148,6 +148,18 @@ class ConfirmacionServiceTest {
         verifyNoInteractions(eventPublisher);
     }
 
+    @Test
+    void confirmarDosVecesNoDuplicaNiRepublicaEvento() {
+        // setup igual que confirmarMarcaElSalon... pero estado ya A_SALVO
+        // 1ª vez: puede ser el test existente
+        // 2ª vez:
+        ConfirmacionResponse r2 = confirmacionService.confirmar(
+                1L, 2L, new UsuarioAutenticado(3, "docente@test.com", Rol.DOCENTE));
+        assertEquals("A_SALVO", r2.getEstado());
+        verify(confirmacionSalonRepository, never()).save(any()); // o times(0) en la 2ª
+        verify(eventPublisher, never()).publishEvent(any()); // en la 2ª invocación
+    }
+
     private Emergencia emergenciaActiva() {
         Colegio colegio = new Colegio();
         colegio.setId(7);
